@@ -1,0 +1,232 @@
+schema_version: 1
+default_supported_path: 18.0->19.0
+
+state_contract:
+  required_keys:
+    - repo
+    - module
+    - source_version
+    - target_version
+    - branch
+    - repo_path
+    - stage
+    - status
+    - state_file
+  resume_stages:
+    - ready_for_ai
+    - ai_migration_done
+    - tests_pending
+    - tests_green
+    - validation_pending
+    - validation_green
+    - manual_review_required
+
+supported_paths:
+  18.0->19.0:
+    label: Odoo 18.0 to 19.0
+    target_manifest_version: 19.0.1.0.0
+    rules:
+      - id: manifest.version.bump
+        scope: manifest
+        severity: required
+        auto_apply: true
+        summary: Bump the module version to the 19.0 baseline.
+        detection:
+          files:
+            - __manifest__.py
+          hints:
+            - version
+            - 18.0.
+        action:
+          kind: replace_version
+          target: 19.0.1.0.0
+
+      - id: cleanup.legacy.migrations
+        scope: filesystem
+        severity: required
+        auto_apply: true
+        summary: Remove legacy migrations directories copied from the source branch.
+        detection:
+          paths:
+            - migrations/
+        action:
+          kind: delete_path
+          target: migrations/
+
+      - id: xml.request.type.jsonrpc
+        scope: xml
+        severity: required
+        auto_apply: true
+        summary: Replace type="json" with type="jsonrpc" in route declarations.
+        detection:
+          file_globs:
+            - '**/*.py'
+            - '**/*.xml'
+          hints:
+            - type="json"
+        action:
+          kind: replace_literal
+          from: type="json"
+          to: type="jsonrpc"
+
+      - id: python.env.cursor
+        scope: python
+        severity: required
+        auto_apply: false
+        summary: Replace legacy self._cr access with self.env.cr.
+        detection:
+          file_globs:
+            - '**/*.py'
+          hints:
+            - self._cr
+        action:
+          kind: replace_literal
+          from: self._cr
+          to: self.env.cr
+        manual_review_reason: Verify the target object is still a model environment and not a lower-level cursor wrapper.
+
+      - id: python.env.context
+        scope: python
+        severity: required
+        auto_apply: false
+        summary: Replace legacy self._context access with self.env.context.
+        detection:
+          file_globs:
+            - '**/*.py'
+          hints:
+            - self._context
+        action:
+          kind: replace_literal
+          from: self._context
+          to: self.env.context
+        manual_review_reason: Confirm the call site expects a mapping and not a copied context object.
+
+      - id: python.env.uid
+        scope: python
+        severity: required
+        auto_apply: false
+        summary: Replace legacy self._uid usage with the appropriate env-based equivalent.
+        detection:
+          file_globs:
+            - '**/*.py'
+          hints:
+            - self._uid
+        action:
+          kind: review_only
+          recommendation: Use self.env.uid for the numeric user id or self.env.user for the record, depending on call-site semantics.
+        manual_review_reason: The correct replacement varies by usage and should not be mass-applied blindly.
+
+      - id: python.groups_id.group_ids
+        scope: python
+        severity: required
+        auto_apply: false
+        summary: Replace groups_id references with group_ids where the 19.0 API requires it.
+        detection:
+          file_globs:
+            - '**/*.py'
+            - '**/*.xml'
+            - '**/*.csv'
+          hints:
+            - groups_id
+        action:
+          kind: review_only
+          recommendation: Rename groups_id to group_ids only in places where the target model or record schema changed in 19.0.
+        manual_review_reason: Some occurrences are business fields, not migration targets.
+
+      - id: python.toggle_active.archive_actions
+        scope: python
+        severity: required
+        auto_apply: false
+        summary: Replace toggle_active with action_archive or action_unarchive.
+        detection:
+          file_globs:
+            - '**/*.py'
+          hints:
+            - toggle_active
+        action:
+          kind: review_only
+          recommendation: Split the call into explicit archive or unarchive behavior based on the original intent.
+        manual_review_reason: Choosing the correct action depends on the runtime branch and prior active state.
+
+      - id: python.read_group.deprecated
+        scope: python
+        severity: required
+        auto_apply: true
+        summary: Replace deprecated public read_group() calls with _read_group() in backend code.
+        detection:
+          file_globs:
+            - '**/*.py'
+          hints:
+            - .read_group(
+        action:
+          kind: replace_regex
+          pattern: '(?<!\w)\.read_group\('
+          replacement: '._read_group('
+          notes: >
+            In 19.0, the public read_group() ORM method is deprecated and emits a DeprecationWarning.
+            Use _read_group() for backend aggregation. Note that _read_group() returns a list of
+            group dicts using field objects as keys instead of string field names, so call-site
+            result processing must be updated accordingly. Use formatted_read_group() only when
+            a fully formatted (display-ready) result is required.
+        manual_review_reason: >
+          The return format of _read_group() differs from read_group(): keys are field objects,
+          not strings. Each call site must be individually updated to use the new key format.
+          Auto-apply only renames the method; the result-processing code requires manual review.
+
+      - id: python.domain.api
+        scope: python
+        severity: recommended
+        auto_apply: false
+        summary: Review domains that should migrate to the modern Domain API in 19.0.
+        detection:
+          file_globs:
+            - '**/*.py'
+          hints:
+            - expression.AND
+            - expression.OR
+            - domain=
+        action:
+          kind: review_only
+          recommendation: Prefer modern Domain helpers when the target API or readability clearly benefits from it.
+        manual_review_reason: Domain rewrites can alter semantics and should be deliberate.
+
+      - id: tests.demo.data
+        scope: tests
+        severity: required
+        auto_apply: false
+        summary: Adjust tests that implicitly rely on demo data no longer being installed by default.
+        detection:
+          file_globs:
+            - tests/**/*.py
+            - '**/*test*.py'
+          hints:
+            - env.ref(
+            - demo
+        action:
+          kind: review_only
+          recommendation: Create explicit fixtures or ensure the required records are installed by the test setup.
+        manual_review_reason: Test data assumptions differ per module and require local fixture knowledge.
+
+      - id: validation.post_migration.tests
+        scope: workflow
+        severity: required
+        auto_apply: false
+        summary: Run module tests after migration edits and before final validation.
+        detection:
+          hints:
+            - tests_pending
+        action:
+          kind: invoke_skill
+          skill: odoo-tests
+
+      - id: validation.post_migration.module_check
+        scope: workflow
+        severity: required
+        auto_apply: false
+        summary: Run module validation after tests are green.
+        detection:
+          hints:
+            - validation_pending
+        action:
+          kind: invoke_skill
+          skill: odoo-validate-module
