@@ -52,7 +52,9 @@ The skill validates, produces a report, and suggests fixes for any issues found.
 - ✅ Required fields present: `name`, `version`, `author`, `license`, `category`, `website`
 - ✅ `version` format matches `18.0.x.y.z` (major.minor.patch)
 - ✅ `license` is `"AGPL-3"` (OCA standard)
-- ✅ `website` is `"https://github.com/c4a8-odoo/module-c4a8-community"` (c4a8 standard)
+- ✅ `author` contains `, Odoo Community Association (OCA)` (OCA requirement)
+- ✅ `website` is `"https://github.com/c4a8-odoo/<repo-name>"` (c4a8 standard)
+- ✅ Module technical name uses singular form and follows OCA naming conventions
 - ✅ `depends` list is non-empty and valid module references exist
 - ✅ `data` and `demo` lists use valid file paths
 - ✅ No orphaned or circular dependencies
@@ -70,6 +72,13 @@ The skill validates, produces a report, and suggests fixes for any issues found.
 ⚠️ MANIFEST FIELD VALUE: website
    Current: "https://github.com/user/repo"
    Expected: "https://github.com/c4a8-odoo/module-c4a8-community"
+   File: equipment_confirmation/__manifest__.py
+```
+
+```
+⚠️ MANIFEST FIELD VALUE: author
+   Current: "c4a8-odoo"
+   Expected: "c4a8-odoo, Odoo Community Association (OCA)"
    File: equipment_confirmation/__manifest__.py
 ```
 

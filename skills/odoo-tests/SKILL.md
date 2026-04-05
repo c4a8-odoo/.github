@@ -23,6 +23,8 @@ Use this skill when the task involves:
 
 > **CRITICAL**: Always invoke `odoo-bin` via `/usr/bin/python3 /src/odoo/odoo-bin`. **Never call `/src/odoo/odoo-bin` directly as a standalone script** — doing so will fail with missing module errors because the system Python is not used.
 
+For running tests via VS Code (recommended) or a full command reference, see the `odoo-run-tests` skill.
+
 Always run tests through `odoo-bin`, matching the workspace launch configuration.
 
 Single test file:

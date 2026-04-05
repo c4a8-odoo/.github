@@ -47,8 +47,15 @@ my_module/
 ├── static/
 │   └── description/
 │       └── icon.png
-└── README.rst
+├── readme/
+│   ├── DESCRIPTION.md
+│   └── CONTRIBUTORS.md
+├── hooks.py          # only when pre/post_init_hook or uninstall_hook is used
+├── exceptions.py     # only when custom exceptions are defined
+└── README.rst        # auto-generated from readme/; do not edit directly
 ```
+
+**Module naming:** Use singular form (e.g., `sale_order_line_discount`, not `sale_order_lines_discount`). When extending an existing Odoo module, prefix with that module's name (e.g., `mail_forward`).
 
 ## Manifest File (`__manifest__.py`)
 
@@ -62,7 +69,7 @@ my_module/
     "version": "18.0.1.0.0",
     "license": "AGPL-3",
     "category": "Category",
-    "author": "c4a8-odoo",
+    "author": "glueckkanja AG, Odoo Community Association (OCA)",
     "website": "https://github.com/c4a8-odoo/module-repo",
     "depends": ["base"],
     "data": [
@@ -71,6 +78,8 @@ my_module/
     ],
 }
 ```
+
+> OCA requires `, Odoo Community Association (OCA)` appended to the `author` field.
 
 Version format: `<odoo_version>.<major>.<minor>.<patch>` (e.g., `18.0.1.0.0`)
 
@@ -87,8 +96,10 @@ class MyModel(models.Model):
     _name = "my.model"
     _description = "My Model"
 
-    name = fields.Char(string="Name", required=True)
+    name = fields.Char(required=True)
 ```
+
+> Omit the `string=` parameter when the default label derived from the field name is sufficient (OCA convention).
 
 ## Code Quality
 
@@ -101,17 +112,23 @@ pre-commit run --all-files
 ```
 
 The pre-commit configuration includes:
-- **black**: Python code formatting
+- **ruff**: Python code formatting and linting (replaces black + flake8)
 - **isort**: Python import sorting
-- **flake8**: Python linting
 - **pylint-odoo**: Odoo-specific linting
 - **prettier**: XML/JS/CSS formatting
 - **oca-checks-odoo-module**: OCA module checks
 
 ## Adding the Module to the Project
 
-Add the module to the project's git submodules (see `odoo-oca-submodule` skill):
+Add the new module repository as a git submodule in the main project:
 
 ```bash
 git submodule add -b 18.0 git@github.com:c4a8-odoo/my-new-module.git modules/c4a8/my-new-module
 ```
+
+## Related Skills
+
+- `odoo-development` — extending modules, adding models/views/security after scaffolding
+- `odoo-documentation` — creating `readme/` content (DESCRIPTION.md, CONFIGURE.md, CONTRIBUTORS.md)
+- `odoo-tests` — writing and running unit tests for the new module
+- `odoo-validate-module` — validating OCA compliance before merge

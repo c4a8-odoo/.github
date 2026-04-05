@@ -15,6 +15,8 @@ Use this skill when the task involves:
 Focus on user-facing and administrator-facing documentation only.
 Do not generate developer API docs or code comments.
 
+> **Note on file format:** OCA standard uses `.rst` for `readme/` files (e.g., `DESCRIPTION.rst`). This project uses `.md` instead. Keep `.md` for all `readme/` content in this workspace.
+
 When UI changes are part of the module update, documentation must also include updated screenshots with explicit visual callouts.
 
 ## Source Analysis
@@ -100,6 +102,12 @@ Do not commit until pre-commit passes or remaining failures are explicitly escal
 - Keep screenshot annotations minimal, clear, and focused on the migrated changes
 - Keep documentation text short; avoid detailed UI-change narratives
 - For UI screenshots, rely on concise image alt text for minimal context
+
+## Related Skills
+
+- `odoo-module-scaffold` — creates the initial `readme/` directory when scaffolding
+- `odoo-development` — triggers documentation when models/views change
+- `odoo-validate-module` — checks that `readme/DESCRIPTION.md` and `readme/CONTRIBUTORS.md` exist
 
 ## Output Expectations
 

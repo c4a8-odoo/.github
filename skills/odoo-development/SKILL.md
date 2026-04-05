@@ -30,19 +30,26 @@ my_module/
 ├── data/
 ├── static/
 ├── tests/
-└── readme/
+├── readme/
+├── hooks.py          # only when pre/post_init_hook or uninstall_hook is used
+└── exceptions.py     # only when custom exceptions are defined
 ```
+
+Use `odoo-module-scaffold` when creating a new module from scratch.
 
 ## Development Rules
 
 - Version format: `18.0.x.y.z`, start with `18.0.1.0.0`
 - License for c4a8 community modules: `AGPL-3`
-- Website: `https://github.com/c4a8-odoo/module-c4a8-community`
+- Author: `"glueckkanja AG, Odoo Community Association (OCA)"` — OCA requires the suffix
+- Module names: use **singular** form (e.g., `sale_order_discount`, not `sale_orders_discount`); prefix with the extended module's name when extending (e.g., `mail_forward`)
+- Website: `https://github.com/c4a8-odoo/<repo-name>` (use the actual repo name)
 - Use `<list>` instead of `<tree>` in XML views
 - Do not add `string=` when the default label is sufficient
 - Use `self.env._("...")` for translatable strings
 - Use `<chatter />` instead of legacy chatter markup
 - Prefer Python expressions over `attrs` / `states`
+- Place installation hooks (`pre_init_hook`, `post_init_hook`, `uninstall_hook`) in `hooks.py`, never inline in `__manifest__.py`
 
 ## Implementation Guidance
 
@@ -64,6 +71,7 @@ my_module/
 - Load security files before business data in the manifest
 
 ### Delegation Boundaries
+- New module scaffolding belongs to the `odoo-module-scaffold` skill
 - Substantive tests belong to the `odoo-tests` skill
 - Substantive readme/docs belong to the `odoo-documentation` skill
 - Migration work belongs to the `odoo-migrate-module` skill

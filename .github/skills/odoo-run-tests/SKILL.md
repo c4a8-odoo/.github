@@ -39,12 +39,30 @@ The "Debug Tests" launch configuration uses:
 
 From inside the `test` container (connected via devcontainer), run:
 
+> **CRITICAL**: Always invoke `odoo-bin` via `/usr/bin/python3 /src/odoo/odoo-bin`. Never call `/src/odoo/odoo-bin` directly as a standalone script — doing so will fail with missing module errors because the system Python is not used.
+
+Single test file:
 ```bash
-/src/odoo/odoo-bin \
+/usr/bin/python3 /src/odoo/odoo-bin \
   --config=/etc/odoo/odoo.conf \
+  --dev=all \
   --stop-after-init \
-  --test-enable \
-  --test-tags=<module_name> \
+  --test-file=<absolute_path_to_test_file> \
+  --database=db18_test_<module_name> \
+  --db_host=mydb \
+  --db_user=odoo \
+  --db_password=myodoo \
+  --init=<module_name> \
+  --update=<module_name>
+```
+
+All module tests:
+```bash
+/usr/bin/python3 /src/odoo/odoo-bin \
+  --config=/etc/odoo/odoo.conf \
+  --dev=all \
+  --stop-after-init \
+  --test-tags=/<module_name> \
   --database=db18_test_<module_name> \
   --db_host=mydb \
   --db_user=odoo \
@@ -78,3 +96,7 @@ my_module/
 3. For database issues, use the pgAdmin web interface at http://localhost:8088
    - Username: `admin@odoo.com` / Password: `admin`
    - Database: `mydb` / User: `odoo` / Password: `myodoo`
+
+## Related Skills
+
+- `odoo-tests` — guidance on writing, structuring, and iterating on test code
