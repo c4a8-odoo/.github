@@ -1,59 +1,42 @@
+---
+name: odoo-tests
+description: Guide for running Odoo unit tests in the development environment. Use this when asked to run, debug, or execute Odoo module tests.
+---
+
 # Odoo Tests Skill
 
-Purpose: Write, improve, run, and iterate on Odoo module tests following local OCA-style testing patterns.
+Purpose: Write, improve and iterate on Odoo module tests following local OCA-style testing patterns.
 
 ## When to Use
 
 Use this skill when the task involves:
-- Adding new `test_*.py` files
-- Improving coverage for models, workflows, wizards, or access rules
+- Improving coverage for models, workflows, wizards or access rules
 - Fixing broken tests
 - Refactoring tests to match local conventions
+
+## Test File Structure
+
+Odoo tests must follow the OCA convention:
+- Place test files in `<module>/tests/` directory
+- Test files must be named `test_*.py`
+- The `tests/__init__.py` must import all test modules
+
+Example test structure:
+```
+my_module/
+├── tests/
+│   ├── __init__.py    # imports test_my_module
+│   └── test_my_module.py
+```
 
 ## Core Rules
 
 - Use Odoo's test framework, not pytest
 - Prefer `TransactionCase` or an existing domain-specific base class
 - Use `setUpClass` for expensive shared fixtures
-- Never depend on demo data unless it is explicitly part of installed dependencies and stable
+- Never depend on demo data
 - Fix test code first when failures are caused by bad fixtures or wrong expectations
 - Do not weaken implementation to satisfy tests
-
-## Execution Rules
-
-> **CRITICAL**: Always invoke `odoo-bin` via `/usr/bin/python3 /src/odoo/odoo-bin`. **Never call `/src/odoo/odoo-bin` directly as a standalone script** — doing so will fail with missing module errors because the system Python is not used.
-
-Always run tests through `odoo-bin`, matching the workspace launch configuration.
-
-Single test file:
-```bash
-/usr/bin/python3 /src/odoo/odoo-bin \
-  --config=/src/config/odoo.conf \
-  --dev=all \
-  --stop-after-init \
-  --test-file=<absolute_path_to_test_file> \
-  --database=db18_test_<module> \
-  --db_host=mydb \
-  --db_user=odoo \
-  --db_password=myodoo \
-  --init=<module> \
-  --update=<module>
-```
-
-All module tests:
-```bash
-/usr/bin/python3 /src/odoo/odoo-bin \
-  --config=/src/config/odoo.conf \
-  --dev=all \
-  --stop-after-init \
-  --test-tags=/<module> \
-  --database=db18_test_<module> \
-  --db_host=mydb \
-  --db_user=odoo \
-  --db_password=myodoo \
-  --init=<module> \
-  --update=<module>
-```
 
 ## Test Design Guidance
 
@@ -73,6 +56,29 @@ All module tests:
 - Wizard execution and returned actions
 - Computed fields and onchange behavior
 - Cron-triggered or scheduled effects when relevant
+
+## Execution Rules
+
+For running tests look for available information from the github workflows.
+
+For performance increase, run only tests you are currently working on with `odoo-bin` and the following command structure:
+
+```bash
+
+Single test file:
+```bash
+/usr/bin/python3 /src/odoo/odoo-bin \
+  --config=/src/config/odoo.conf \
+  --dev=all \
+  --stop-after-init \
+  --test-file=<absolute_path_to_test_file> \
+  --database=db18_test_<module> \
+  --db_host=mydb \
+  --db_user=odoo \
+  --db_password=myodoo \
+  --init=<module> \
+  --update=<module>
+```
 
 ### Failure Handling
 For each failure:
@@ -95,6 +101,4 @@ For each failure:
 After using this skill, provide:
 - Test files added or changed
 - Scenarios now covered
-- Exact test command(s) executed
 - Pass/fail result summary
-- Any real implementation bugs found during test execution
