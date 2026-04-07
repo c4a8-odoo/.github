@@ -52,6 +52,7 @@ Load skills from https://github.com/c4a8-odoo/.github-private/tree/main/skills
 - Add one line per missing module using this exact syntax:
   `odoo-addon-<module_name> @ git+https://github.com/c4a8-odoo/<repository>.git@refs/pull/<PR>/head#subdirectory=<module_name>`
 - `<PR>` must be the PR number obtained by querying GitHub PRs.
+- `<repository>` must be the repository name obtained by querying GitHub repositories of the c4a8-odoo organization. The repository name most likeliy start with `module-c4a8-`, but all repositories starting with `module-` are valid.
 - Commit this change with the exact message:
   `[DO NOT MERGE] community: add test requirements`
 - Push and re-run/observe CI status before making additional dependency edits.
@@ -110,3 +111,4 @@ PR body policy:
 - Use the `odoo-migrate-module` skill as the migration reasoning engine, not as a standalone human checklist.
 - Keep the post-bootstrap workflow deterministic and the agent iterative.
 - Store reusable migration lessons with `odoo-remember-feedback` only when they generalize beyond a single module.
+- Investigate ALL CI failures by reading the actual test output — specifically the errors that caused failure section in the test logs. Fix any code-level failures, not just dependency install failures.
