@@ -57,10 +57,6 @@ The skill will:
 
 ---
 
-## Pattern Storage Format
-
-Patterns are stored in `/memories/repo/odoo-patterns.md` as categorized entries:
-
 ```markdown
 # Odoo Patterns & Best Practices
 

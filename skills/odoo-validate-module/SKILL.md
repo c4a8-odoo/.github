@@ -9,7 +9,6 @@
 The `odoo-validate-module` skill performs a comprehensive audit of an Odoo module to ensure it:
 - ✅ Follows OCA coding conventions
 - ✅ Complies with c4a8 team standards
-- ✅ Implements team patterns from `/memories/repo/odoo-patterns.md`
 - ✅ Has adequate test coverage
 - ✅ Meets security best practices
 - ✅ Is mergeable to main
