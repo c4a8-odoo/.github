@@ -20,7 +20,7 @@ Prefer the `@odoo-migration` agent for end-to-end migrations. Use this skill dir
 ## Current Support Level
 
 - First-class support: `18.0 -> 19.0`
-- Future version paths should be added through `/src/.github/skills/odoo-migrate-module/migration-rules.yaml`
+- Future version paths should be added through `./migration-rules.yaml`
 
 ## Required Inputs
 
@@ -30,12 +30,6 @@ Capture or infer:
 - Source version and target version
 - Migration state file from `module-migration.sh`, when available
 - Current stage of the migration run and any prior blockers
-
-## Required References
-
-Always load and use:
-- `/src/.github/copilot-instructions.md`
-- `/src/.github/skills/odoo-migrate-module/migration-rules.yaml`
 
 ## State-Aware Workflow
 
