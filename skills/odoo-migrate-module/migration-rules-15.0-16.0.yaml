@@ -386,17 +386,12 @@ supported_paths:
         severity: required
         auto_apply: false
         summary: >
-          Convert OCA readme fragment files from Markdown (.md) to
-          reStructuredText (.rst) as required by OCA standards from 15.0 onwards.
+          Convert lingering Markdown readme fragments (readme/*.md) to
+          reStructuredText (.rst). OCA modules adopted RST for readme/ fragments
+          during the 15.0 cycle; modules that were never updated to 15.0 or that
+          skipped the RST conversion may still carry .md files when migrated to 16.0.
+          Note: the reverse direction (.rst → .md) applies in the 16.0→17.0 path.
         detection:
-          paths:
-            - readme/CONFIGURE.md
-            - readme/DESCRIPTION.md
-            - readme/USAGE.md
-            - readme/CONTRIBUTORS.md
-            - readme/INSTALL.md
-            - readme/ROADMAP.md
-            - readme/HISTORY.md
           file_globs:
             - 'readme/*.md'
         action:
@@ -411,7 +406,9 @@ supported_paths:
             After renaming, re-run "oca-gen-addon-readme" to regenerate README.rst.
             Confirmed in stock_picking_auto_create_lot_qty (OCA/stock-logistics-workflow):
             CONFIGURE.md, CONTRIBUTORS.md, DESCRIPTION.md, and USAGE.md all renamed
-            to .rst.
+            to .rst during migration to 16.0.
+            If the module already has .rst readme fragments (standard for 15.0 modules),
+            this rule does not apply.
         manual_review_reason: >
           Markdown to RST conversion is non-trivial for complex formatting.
           After the rename, the generated README.rst must be regenerated and
