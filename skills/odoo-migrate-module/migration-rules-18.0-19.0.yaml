@@ -177,17 +177,15 @@ supported_paths:
         scope: python
         severity: recommended
         auto_apply: false
-        summary: Review domains that should migrate to the modern Domain API in 19.0.
+        summary: Review remaining domain usages that should migrate to the modern Domain API in 19.0 beyond the auto-applied import and method-call replacements.
         detection:
           file_globs:
             - '**/*.py'
           hints:
-            - expression.AND
-            - expression.OR
             - domain=
         action:
           kind: review_only
-          recommendation: Prefer modern Domain helpers when the target API or readability clearly benefits from it.
+          recommendation: Prefer modern Domain helpers when the target API or readability clearly benefits from it. Note that expression.AND/OR import and call-site replacements are handled automatically by python.imports.osv_expression_import and python.expression.method_calls.
         manual_review_reason: Domain rewrites can alter semantics and should be deliberate.
 
       - id: tests.demo.data
@@ -240,6 +238,8 @@ supported_paths:
             - '**/*.py'
           hints:
             - 'from odoo import _'
+            - '_("'
+            - "_(''"
         action:
           kind: review_only
           recommendation: >
@@ -362,7 +362,6 @@ supported_paths:
           hints:
             - 'pytz.timezone'
             - "context.get('tz')"
-            - "context.get(\"tz\")"
         action:
           kind: review_only
           recommendation: >
