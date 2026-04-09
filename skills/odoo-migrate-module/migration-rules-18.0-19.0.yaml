@@ -177,7 +177,7 @@ supported_paths:
         scope: python
         severity: recommended
         auto_apply: false
-        summary: Review remaining domain usages that should migrate to the modern Domain API in 19.0 beyond the auto-applied import and method-call replacements.
+        summary: Review remaining domain usages for migration to the modern Domain API in 19.0.
         detection:
           file_globs:
             - '**/*.py'
@@ -239,7 +239,7 @@ supported_paths:
           hints:
             - 'from odoo import _'
             - '_("'
-            - "_(''"
+            - "_('"
         action:
           kind: review_only
           recommendation: >
