@@ -1,0 +1,560 @@
+schema_version: 1
+default_supported_path: 15.0->16.0
+
+state_contract:
+  required_keys:
+    - repo
+    - module
+    - source_version
+    - target_version
+    - branch
+    - repo_path
+    - stage
+    - status
+    - state_file
+  resume_stages:
+    - ready_for_ai
+    - ai_migration_done
+    - tests_pending
+    - tests_green
+    - validation_pending
+    - validation_green
+    - manual_review_required
+
+supported_paths:
+  15.0->16.0:
+    label: Odoo 15.0 to 16.0
+    target_manifest_version: 16.0.1.0.0
+    rules:
+      - id: manifest.version.bump
+        scope: manifest
+        severity: required
+        auto_apply: true
+        summary: Bump the module version to the 16.0 baseline.
+        detection:
+          files:
+            - __manifest__.py
+          hints:
+            - version
+            - 15.0.
+        action:
+          kind: replace_version
+          target: 16.0.1.0.0
+
+      - id: cleanup.legacy.migrations
+        scope: filesystem
+        severity: required
+        auto_apply: true
+        summary: Remove legacy migrations directories copied from the source branch.
+        detection:
+          paths:
+            - migrations/
+        action:
+          kind: delete_path
+          target: migrations/
+
+      - id: manifest.license.ensure
+        scope: manifest
+        severity: required
+        auto_apply: false
+        summary: Ensure the manifest contains a license key; all OCA 16.0 manifests require it.
+        detection:
+          files:
+            - __manifest__.py
+          hints:
+            - '"license"'
+        action:
+          kind: review_only
+          recommendation: >
+            Add a "license" key to __manifest__.py if it is missing.
+            The standard OCA license values are "AGPL-3" and "LGPL-3".
+            Example: "license": "AGPL-3"
+            Confirmed absent from many 15.0 manifests and present in every
+            reviewed 16.0 manifest across delivery-carrier, fleet, web, contract,
+            hr, maintenance, stock-logistics-workflow, crm, and partner-contact repos.
+        manual_review_reason: >
+          The correct license value (AGPL-3, LGPL-3, etc.) must be confirmed
+          against the upstream module's licensing before auto-applying.
+
+      - id: tests.savepoint_to_transactioncase
+        scope: tests
+        severity: required
+        auto_apply: true
+        summary: Replace removed SavepointCase with TransactionCase in all test files.
+        detection:
+          file_globs:
+            - 'tests/**/*.py'
+            - '**/*test*.py'
+          hints:
+            - SavepointCase
+        action:
+          kind: replace_regex
+          pattern: 'SavepointCase'
+          replacement: 'TransactionCase'
+
+      - id: tests.savepoint_import
+        scope: tests
+        severity: required
+        auto_apply: true
+        summary: Update imports that pulled SavepointCase from odoo.tests.common.
+        detection:
+          file_globs:
+            - 'tests/**/*.py'
+            - '**/*test*.py'
+          hints:
+            - from odoo.tests.common import SavepointCase
+            - from odoo.tests import SavepointCase
+        action:
+          kind: replace_regex
+          pattern: '(?:from odoo\.tests\.common import|from odoo\.tests import)\s+SavepointCase'
+          replacement: 'from odoo.tests.common import TransactionCase'
+
+      - id: tests.basecommon.setUpClass
+        scope: tests
+        severity: recommended
+        auto_apply: false
+        summary: >
+          Prefer BaseCommon from odoo.addons.base.tests.common over plain TransactionCase
+          for modules that test records across multiple models.
+        detection:
+          file_globs:
+            - 'tests/**/*.py'
+          hints:
+            - TransactionCase
+            - setUpClass
+        action:
+          kind: review_only
+          recommendation: >
+            Consider replacing "from odoo.tests.common import TransactionCase" with
+            "from odoo.addons.base.tests.common import BaseCommon" and changing the
+            test class to inherit from BaseCommon instead of TransactionCase.
+            BaseCommon sets up common fixtures (company, partner, user) automatically
+            and is the recommended base for 16.0 OCA tests. Confirmed pattern in
+            delivery-carrier (delivery_carrier_multi_zip) and crm (crm_lead_product).
+        manual_review_reason: >
+          BaseCommon initialises extra fixtures not always desired. Each test class
+          must be reviewed individually to confirm that the automatic fixtures do not
+          conflict with the module's own setUp logic.
+
+      - id: tests.setUpClass.classmethod
+        scope: tests
+        severity: required
+        auto_apply: false
+        summary: Migrate setUp() to setUpClass() for better test isolation and performance.
+        detection:
+          file_globs:
+            - 'tests/**/*.py'
+          hints:
+            - 'def setUp(self)'
+        action:
+          kind: review_only
+          recommendation: >
+            In Odoo 16.0, the preferred pattern is to create test fixtures in a
+            @classmethod setUpClass(cls) method rather than setUp(self). Shared
+            records should be created once per class (cls.env["model"].create(...)),
+            while records that must be fresh per test can stay in setUp(self).
+            Change "def setUp(self):" to "@classmethod\n    def setUpClass(cls):"
+            and update "self." references to "cls." in the class-level code.
+        manual_review_reason: >
+          Converting setUp to setUpClass requires identifying which fixtures
+          must be fresh per test (keep in setUp) versus shared (move to setUpClass).
+          Incorrect conversion can cause state leakage between tests.
+
+      - id: python.create.model_create_multi
+        scope: python
+        severity: required
+        auto_apply: false
+        summary: >
+          Replace @api.model on create() methods with @api.model_create_multi
+          and update the signature to accept a list of value dicts.
+        detection:
+          file_globs:
+            - '**/*.py'
+          hints:
+            - def create(self, vals)
+            - '@api.model'
+        action:
+          kind: review_only
+          recommendation: >
+            Change the create() signature from
+              @api.model
+              def create(self, vals):
+                  ...
+                  return super().create(vals)
+            to
+              @api.model_create_multi
+              def create(self, vals_list):
+                  records = super().create(vals_list)
+                  for record, vals in zip(records, vals_list):
+                      # per-record post-create logic
+                  return records
+            @api.model_create_multi is required in 16.0 for create() overrides to
+            support batched creation. Confirmed in contract (contract_forecast)
+            and hr (hr_job_category).
+        manual_review_reason: >
+          The vals dict access pattern must be updated throughout the method body:
+          references to `vals.get(...)` inside a single-record block must be moved
+          to the loop over `zip(records, vals_list)`. Business logic that relies on
+          a single record at creation time needs careful refactoring.
+
+      - id: payment.acquirer_to_provider
+        scope: python
+        severity: required
+        auto_apply: false
+        summary: >
+          Rename payment.acquirer to payment.provider and update all related
+          field and model references.
+        detection:
+          file_globs:
+            - '**/*.py'
+            - '**/*.xml'
+            - '**/*.csv'
+          hints:
+            - payment.acquirer
+            - acquirer_id
+            - acquirer_ref
+        action:
+          kind: review_only
+          recommendation: >
+            In Odoo 16.0, the payment acquirer concept was renamed to payment
+            provider. Apply the following renames:
+              - Model "payment.acquirer" → "payment.provider"
+              - Field "acquirer_id" on payment.token → "provider_id"
+              - Field "acquirer_ref" on payment.token → "provider_ref"
+              - Field "acquirer_id" on payment.transaction → "provider_id"
+              - Class PaymentAcquirer → PaymentProvider
+            Also update demo/test data XML files, ir.model.access CSV rows, and
+            any domain expressions filtering on acquirer_id. Confirmed in
+            contract_payment_auto (OCA/contract).
+        manual_review_reason: >
+          Several third-party payment modules may still expose acquirer_id-based
+          fields via their own model extensions. Each occurrence must be checked to
+          distinguish Odoo core renames from module-specific field names.
+
+      - id: mail.activity.type.res_model_field
+        scope: xml
+        severity: required
+        auto_apply: false
+        summary: >
+          Replace res_model_id (Many2one to ir.model) with res_model (Char) in
+          mail.activity.type data records.
+        detection:
+          file_globs:
+            - '**/*.xml'
+          hints:
+            - model="mail.activity.type"
+            - res_model_id
+        action:
+          kind: review_only
+          recommendation: >
+            In Odoo 16.0, mail.activity.type no longer has a res_model_id Many2one
+            field. Instead, use the res_model Char field with the model's technical
+            name. Change:
+              <field name="res_model_id" ref="model_stock_picking" />
+            to:
+              <field name="res_model">stock.picking</field>
+            Confirmed in stock_picking_late_activity (OCA/stock-logistics-workflow).
+        manual_review_reason: >
+          The old res_model_id field references are external IDs for ir.model records.
+          Each reference must be translated to the corresponding model technical name
+          string, which requires knowing the target model.
+
+      - id: javascript.esm.module_header
+        scope: javascript
+        severity: required
+        auto_apply: false
+        summary: >
+          Migrate legacy odoo.define() JavaScript modules to the ESM format
+          required by Odoo 16.0 OWL.
+        detection:
+          file_globs:
+            - 'static/src/**/*.js'
+          hints:
+            - odoo.define(
+        action:
+          kind: review_only
+          recommendation: >
+            Replace the odoo.define() wrapper with ES module syntax:
+
+            Old style:
+              odoo.define('module.ComponentName', function (require) {
+                  'use strict';
+                  const { Component } = require('@odoo/owl');
+                  ...
+                  return MyComponent;
+              });
+
+            New style (16.0):
+              /** @odoo-module **/
+              import { Component } from "@odoo/owl";
+              ...
+              export default MyComponent;
+
+            Files using the new format can be named *.esm.js or plain *.js (both
+            are supported in 16.0). Update the manifest assets entry accordingly.
+            Confirmed in web_edit_user_filter (OCA/web): backend.js (344 lines)
+            was replaced with customFavorite.esm.js, searchBar.esm.js, and
+            searchModel.esm.js.
+        manual_review_reason: >
+          The OWL component API, prop system, and lifecycle hooks differ from the
+          old widget system. Each component must be fully rewritten and tested.
+          Automatic regex replacement cannot handle the semantic differences.
+
+      - id: manifest.assets.bundle
+        scope: manifest
+        severity: required
+        auto_apply: false
+        summary: >
+          Replace legacy qweb/data/js/css manifest keys with the assets bundle
+          structure introduced in Odoo 15.0 and required in 16.0.
+        detection:
+          files:
+            - __manifest__.py
+          hints:
+            - '"qweb"'
+            - '"js":'
+            - '"css":'
+        action:
+          kind: review_only
+          recommendation: >
+            Remove the legacy "qweb", "js", and "css" keys from __manifest__.py
+            and replace them with an "assets" dict. Example:
+
+            Old:
+              "qweb": ["static/src/xml/my_widget.xml"],
+              "js": ["static/src/js/my_widget.js"],
+              "css": ["static/src/less/my_style.less"],
+
+            New:
+              "assets": {
+                  "web.assets_backend": [
+                      "my_module/static/src/js/my_widget.js",
+                      "my_module/static/src/xml/my_widget.xml",
+                      "my_module/static/src/less/my_style.less",
+                  ],
+              },
+
+            Use "web.assets_frontend" for portal/website assets,
+            "web.assets_qweb" for standalone QWeb templates, and
+            "web.report_assets_common" for report-specific assets.
+            Confirmed in web_edit_user_filter (OCA/web).
+        manual_review_reason: >
+          The correct target bundle (backend, frontend, qweb, etc.) depends on
+          where the asset is consumed and cannot be inferred from the filename alone.
+
+      - id: orm.command.helper
+        scope: python
+        severity: recommended
+        auto_apply: false
+        summary: >
+          Replace raw ORM command tuples with the odoo.Command helper for
+          Many2many and One2many field writes.
+        detection:
+          file_globs:
+            - '**/*.py'
+          hints:
+            - '(0, 0,'
+            - '(1, '
+            - '(2, '
+            - '(3, '
+            - '(4, '
+            - '(5, 0, [])'
+            - '(6, 0,'
+        action:
+          kind: review_only
+          recommendation: >
+            Replace raw ORM tuples with the Command helper imported from odoo:
+              from odoo import Command
+
+              (0, 0, vals)          → Command.create(vals)
+              (1, id, vals)         → Command.update(id, vals)
+              (2, id)               → Command.delete(id)
+              (3, id)               → Command.unlink(id)
+              (4, id)               → Command.link(id)
+              (5, 0, [])            → Command.clear()
+              (6, 0, ids)           → Command.set(ids)
+
+            Confirmed in delivery_carrier_multi_zip (OCA/delivery-carrier):
+              Command.create({"zip_from": "0001", "zip_to": "0001"})
+        manual_review_reason: >
+          Not all tuple usages are ORM commands; some may be raw data structures
+          or RPC payloads that must NOT be rewritten. Each occurrence requires
+          context-level review.
+
+      - id: filesystem.readme.md_to_rst
+        scope: filesystem
+        severity: required
+        auto_apply: false
+        summary: >
+          Convert OCA readme fragment files from Markdown (.md) to
+          reStructuredText (.rst) as required by OCA standards from 15.0 onwards.
+        detection:
+          paths:
+            - readme/CONFIGURE.md
+            - readme/DESCRIPTION.md
+            - readme/USAGE.md
+            - readme/CONTRIBUTORS.md
+            - readme/INSTALL.md
+            - readme/ROADMAP.md
+            - readme/HISTORY.md
+          file_globs:
+            - 'readme/*.md'
+        action:
+          kind: review_only
+          recommendation: >
+            Rename each readme/*.md file to the corresponding readme/*.rst file
+            and convert Markdown syntax to reStructuredText:
+              - Headers: "## Title" → "Title\n------"
+              - Bold: "**text**" → "**text**" (same)
+              - Code blocks: ```python ... ``` → ".. code-block:: python\n\n    ..."
+              - Links: "[text](url)" → "`text <url>`_"
+            After renaming, re-run "oca-gen-addon-readme" to regenerate README.rst.
+            Confirmed in stock_picking_auto_create_lot_qty (OCA/stock-logistics-workflow):
+            CONFIGURE.md, CONTRIBUTORS.md, DESCRIPTION.md, and USAGE.md all renamed
+            to .rst.
+        manual_review_reason: >
+          Markdown to RST conversion is non-trivial for complex formatting.
+          After the rename, the generated README.rst must be regenerated and
+          reviewed for correctness.
+
+      - id: setup.directory.oca
+        scope: filesystem
+        severity: recommended
+        auto_apply: false
+        summary: >
+          Add the OCA setup/ directory scaffold for PyPI packaging compatibility
+          if it was not present in the source branch.
+        detection:
+          paths:
+            - setup/
+        action:
+          kind: review_only
+          recommendation: >
+            Create the setup directory for each module that lacks it:
+              setup/<module_name>/odoo/addons/<module_name>  (symlink → ../../../../<module_name>)
+              setup/<module_name>/setup.py
+
+            Minimal setup.py content:
+              from setuptools import setup
+              setup(
+                  install_requires=[
+                      "odoo>=16.0dev,<17.0dev",
+                  ],
+              )
+
+            This is generated automatically by OCA maintainer tools
+            (e.g. "oca-gen-addon-readme --addons-dir . --if-missing").
+            Confirmed added in product_supplierinfo_disable_autocreation
+            (OCA/purchase-workflow) and web_edit_user_filter (OCA/web).
+        manual_review_reason: >
+          The symlink target path must be correct relative to the setup/ directory.
+          Some repos generate this with CI tooling rather than manually.
+
+      - id: views.priority.widget
+        scope: xml
+        severity: recommended
+        auto_apply: false
+        summary: >
+          Review priority field usages in views; the priority widget rendering
+          changed in 16.0.
+        detection:
+          file_globs:
+            - '**/*.xml'
+          hints:
+            - widget="priority"
+        action:
+          kind: review_only
+          recommendation: >
+            In Odoo 16.0, the priority widget renders differently and the field
+            value range may differ. Verify that:
+            1. The priority field still displays correctly in list and kanban views.
+            2. The domain filters using priority values still work as expected.
+            3. The optional="show" attribute is appropriate for list views.
+            Confirmed pattern in stock_landed_costs_priority
+            (OCA/stock-logistics-workflow) where priority widget is used with
+            optional="show" nolabel="1" in tree views.
+        manual_review_reason: >
+          Visual behaviour changes in the priority widget are context-dependent
+          and must be verified by running the module in a 16.0 instance.
+
+      - id: python.invalidate_cache_to_recordset
+        scope: python
+        severity: required
+        auto_apply: false
+        summary: >
+          Replace deprecated invalidate_cache() and flush() calls with
+          invalidate_recordset() and flush_recordset() on individual recordsets.
+        detection:
+          file_globs:
+            - '**/*.py'
+          hints:
+            - invalidate_cache(
+            - .flush(
+            - self.env.cache.invalidate(
+        action:
+          kind: review_only
+          recommendation: >
+            Replace global cache and flush operations with recordset-scoped equivalents:
+              self.invalidate_cache()          → record.invalidate_recordset()
+              self.env.cache.invalidate()      → record.invalidate_recordset()
+              self.flush()                     → record.flush_recordset()
+            For model-level cache invalidation use:
+              self.env["model.name"].invalidate_model()
+            Confirmed pattern in hr_job_category (OCA/hr):
+              self.contract_id.invalidate_recordset()
+              self.contract_id.flush_recordset()
+        manual_review_reason: >
+          The global invalidate_cache() approach cleared the entire environment
+          cache. The replacement must target the correct recordset to avoid
+          under-invalidation (stale reads) or over-invalidation (performance).
+
+      - id: manifest.maintainers.key
+        scope: manifest
+        severity: recommended
+        auto_apply: false
+        summary: >
+          Add the maintainers key to the manifest if the module has a dedicated
+          maintainer listed in CONTRIBUTORS.rst.
+        detection:
+          files:
+            - __manifest__.py
+          hints:
+            - maintainers
+        action:
+          kind: review_only
+          recommendation: >
+            Add a "maintainers" list to __manifest__.py with the GitHub usernames
+            of current module maintainers. Example:
+              "maintainers": ["github_username"],
+            This is required for OCA module health tracking and is present in
+            all reviewed 16.0 manifests that have active maintainers (fleet,
+            delivery-carrier, hr, stock-logistics-workflow, etc.).
+        manual_review_reason: >
+          The correct maintainer GitHub username must be verified against the
+          module's CONTRIBUTORS.rst or OCA repository metadata.
+
+      - id: validation.post_migration.tests
+        scope: workflow
+        severity: required
+        auto_apply: false
+        summary: Run module tests after migration edits and before final validation.
+        detection:
+          hints:
+            - tests_pending
+        action:
+          kind: invoke_skill
+          skill: odoo-tests
+        manual_review_reason: Tests must be run and verified manually or via CI.
+
+      - id: validation.post_migration.module_check
+        scope: workflow
+        severity: required
+        auto_apply: false
+        summary: Run module validation after tests are green.
+        detection:
+          hints:
+            - validation_pending
+        action:
+          kind: invoke_skill
+          skill: odoo-validate-module
+        manual_review_reason: Module validation must be confirmed before merging.
