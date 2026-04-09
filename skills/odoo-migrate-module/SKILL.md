@@ -63,8 +63,17 @@ The operational source of truth lives in `migration-rules.yaml`. The main rule f
 - Manifest normalization, including version bumping to `19.0.1.0.0`
 - Cleanup of legacy `migrations/` directories copied forward from the source branch
 - Mechanical framework updates such as `type="json" -> type="jsonrpc"`
+- Auto-apply import replacement: `from odoo.osv import expression` → `from odoo.fields import Domain`
+- Auto-apply Domain method calls: `expression.AND/OR` → `Domain.AND/OR`
+- Auto-apply field parameter rename: `auto_join=` → `bypass_search_access=`
 - Review-targeted Python API upgrades for `self._cr`, `self._uid`, `self._context`, and archive actions
 - Review-targeted `groups_id -> group_ids` updates where the target schema actually changed
+- Review-targeted translation pattern: bare `_()` → `self.env._()`
+- Review-targeted `_sql_constraints` list → `models.Constraint` class attributes
+- Review-targeted `unlink()` validation guards → `@api.ondelete(at_uninstall=False)` decorator
+- Review-targeted `ormcache_context()` → `ormcache()` with explicit context key parameters
+- Review-targeted timezone helpers: `pytz.timezone(...)` → `self.env.tz`
+- Review-targeted XML search view cleanup: remove deprecated `expand=` and `string=` from `<group>` elements
 - Test hardening for modules that implicitly relied on demo data being installed by default
 
 ## Manual-Review Gates

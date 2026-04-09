@@ -1,0 +1,495 @@
+schema_version: 1
+default_supported_path: 17.0->18.0
+
+state_contract:
+  required_keys:
+    - repo
+    - module
+    - source_version
+    - target_version
+    - branch
+    - repo_path
+    - stage
+    - status
+    - state_file
+  resume_stages:
+    - ready_for_ai
+    - ai_migration_done
+    - tests_pending
+    - tests_green
+    - validation_pending
+    - validation_green
+    - manual_review_required
+
+supported_paths:
+  17.0->18.0:
+    label: Odoo 17.0 to 18.0
+    target_manifest_version: 18.0.1.0.0
+    rules:
+      - id: manifest.version.bump
+        scope: manifest
+        severity: required
+        auto_apply: true
+        summary: Bump the module version to the 18.0 baseline.
+        detection:
+          files:
+            - __manifest__.py
+          hints:
+            - version
+            - 17.0.
+        action:
+          kind: replace_version
+          target: 18.0.1.0.0
+
+      - id: cleanup.legacy.migrations
+        scope: filesystem
+        severity: required
+        auto_apply: true
+        summary: Remove legacy migrations directories copied from the source branch.
+        detection:
+          paths:
+            - migrations/
+        action:
+          kind: delete_path
+          target: migrations/
+
+      - id: xml.view_mode.tree_to_list
+        scope: xml
+        severity: required
+        auto_apply: true
+        summary: Replace 'tree' with 'list' in view_mode field values of ir.actions.act_window records.
+        detection:
+          file_globs:
+            - '**/*.xml'
+          hints:
+            - view_mode
+            - tree
+        action:
+          kind: replace_regex
+          pattern: '(<field name="view_mode">)([^<]*)\btree\b([^<]*)(</field>)'
+          replacement: '\1\2list\3\4'
+
+      - id: xml.tree_element.to_list
+        scope: xml
+        severity: required
+        auto_apply: true
+        summary: Rename the <tree> root element to <list> inside view arch definitions.
+        detection:
+          file_globs:
+            - '**/*.xml'
+          hints:
+            - <tree
+            - </tree>
+        action:
+          kind: replace_regex
+          pattern: '<(/?)\btree\b(\s|>|/)'
+          replacement: '<\1list\2'
+
+      - id: xml.chatter.shorthand
+        scope: xml
+        severity: required
+        auto_apply: true
+        summary: >
+          Replace the verbose <div class="oe_chatter"> block (message_follower_ids,
+          activity_ids, message_ids fields) with the <chatter /> shorthand introduced
+          in Odoo 18.0.
+        detection:
+          file_globs:
+            - '**/*.xml'
+          hints:
+            - oe_chatter
+            - message_follower_ids
+        action:
+          kind: replace_regex
+          pattern: '<div\s+class="oe_chatter">[\s\S]*?<field\s+name="message_follower_ids"[^/]*/?>[\s\S]*?<field\s+name="activity_ids"[^/]*/?>[\s\S]*?<field\s+name="message_ids"[^/]*/?>[\s\S]*?</div>'
+          replacement: '<chatter />'
+
+      - id: xml.action_context.active_id
+        scope: xml
+        severity: required
+        auto_apply: false
+        summary: >
+          Replace the bare 'id' variable with 'active_id' in act_window record
+          context field values. The implicit 'id' context variable was removed in
+          Odoo 18.0; 'active_id' must be used explicitly.
+        detection:
+          file_globs:
+            - '**/*.xml'
+          hints:
+            - "'id'"
+            - '"id"'
+            - context
+        action:
+          kind: review_only
+          recommendation: >
+            In <field name="context"> attribute strings of ir.actions.act_window records,
+            replace dict values that reference the bare variable 'id' (e.g.
+            {'default_vehicle_id': id}) with 'active_id'
+            (e.g. {'default_vehicle_id': active_id}).
+            Do NOT rename keys inside the dict (e.g. 'res_id': id → 'res_id': active_id
+            is correct, but do not rename the key itself).
+            Do NOT change domain strings or other attributes.
+        manual_review_reason: >
+          The string 'id' appears as both a Python variable reference and as a dict key
+          or string literal. A regex replacement would incorrectly rename keys and literals.
+          Context strings must be inspected individually.
+
+      - id: xml.inherit_id.tree_to_list
+        scope: xml
+        severity: required
+        auto_apply: false
+        summary: >
+          Update inherit_id ref values that point to upstream views whose external
+          IDs changed from *_tree_view to *_list_view as part of the tree→list
+          rename in Odoo 18.0.
+        detection:
+          file_globs:
+            - '**/*.xml'
+          hints:
+            - inherit_id
+            - _tree
+        action:
+          kind: review_only
+          recommendation: >
+            For each <field name="inherit_id" ref="..."> that references an upstream
+            view with '_tree' in the external ID, verify whether that view was renamed
+            in Odoo 18.0 (most base views changed _tree_view to _list_view). Update the
+            ref to the new ID. Always confirm the new ID exists in the 18.0 upstream module
+            before applying the change.
+        manual_review_reason: >
+          Not all view external IDs containing '_tree' were renamed; some were kept for
+          backward compatibility. Cross-module ID lookup is required to determine the
+          correct 18.0 external ID.
+
+      - id: xml.view_record_id.tree_to_list
+        scope: xml
+        severity: recommended
+        auto_apply: false
+        summary: >
+          Rename the module's own view record IDs that contain '_tree' to '_list'
+          to follow Odoo 18.0 naming conventions (e.g. view_foo_tree → view_foo_list).
+        detection:
+          file_globs:
+            - '**/*.xml'
+          hints:
+            - _tree
+        action:
+          kind: review_only
+          recommendation: >
+            In <record id="..."> definitions for ir.ui.view, rename IDs with '_tree'
+            suffix/infix to '_list'. Then update every reference to those IDs (inherit_id,
+            action act_view_id fields, Python env.ref() calls) atomically in the same
+            commit. A noupdate migration script may be needed if the records were already
+            installed.
+        manual_review_reason: >
+          Renaming a view external ID is a breaking change for any downstream module that
+          inherits it. All references must be updated simultaneously and a migration script
+          provided for existing installations.
+
+      - id: xml.res_config_settings.block_structure
+        scope: xml
+        severity: required
+        auto_apply: false
+        summary: >
+          Update res.config.settings view XML to use the new <block> / <setting>
+          tag structure introduced in Odoo 18.0, replacing the 17.0 <group> / <div>
+          based layout.
+        detection:
+          file_globs:
+            - '**/*.xml'
+          hints:
+            - res.config.settings
+            - content-group
+            - o_setting_box
+        action:
+          kind: review_only
+          recommendation: >
+            Replace <group string="Section Title"> wrappers with <block title="Section Title">.
+            Replace each <div class="content-group"> (or equivalent) with <setting>.
+            Inside <setting>, place a <span class="o_form_label"> for the label and
+            <div class="text-muted"> for help text. Field widgets go directly inside
+            <setting>. Remove any unused wrapper divs.
+        manual_review_reason: >
+          The settings view structure changed substantially. Each setting entry must be
+          manually rewritten to produce the correct block/setting hierarchy with labels and
+          help text in the right positions.
+
+      - id: python.translation.env_method
+        scope: python
+        severity: required
+        auto_apply: false
+        summary: >
+          Replace bare _() translation calls with self.env._() and remove the _
+          symbol from 'from odoo import' statements. The standalone _ helper was
+          removed in Odoo 18.0.
+        detection:
+          file_globs:
+            - '**/*.py'
+          hints:
+            - 'from odoo import _'
+            - '_("'
+            - "_('"
+        action:
+          kind: review_only
+          recommendation: >
+            1. Remove _ from the 'from odoo import' statement (e.g.
+               'from odoo import _, api, models' → 'from odoo import api, models').
+            2. Replace every _("text") call in method bodies with self.env._("text").
+            3. In lambda defaults, classmethod bodies, or module-level code where
+               self is not available, pass the translated string from the nearest
+               caller that has access to self.env.
+        manual_review_reason: >
+          Lambda defaults, classmethod bodies, and module-level code do not always
+          have access to self. Each occurrence must be reviewed individually to ensure
+          env is available at the call site before applying self.env._().
+
+      - id: python.check_access_rights.has_access
+        scope: python
+        severity: required
+        auto_apply: true
+        summary: >
+          Replace model.check_access_rights('perm', False) with model.has_access('perm').
+          The has_access() method was introduced in Odoo 18.0 as the clean non-raising
+          API for access rights checks.
+        detection:
+          file_globs:
+            - '**/*.py'
+          hints:
+            - check_access_rights
+            - ', False)'
+            - ", False)"
+        action:
+          kind: replace_regex
+          pattern: '\.check_access_rights\(([''"][a-z_]+[''"])\s*,\s*False\)'
+          replacement: '.has_access(\1)'
+
+      - id: tests.form_import_location
+        scope: tests
+        severity: required
+        auto_apply: true
+        summary: >
+          Move the Form test-helper import from odoo.tests.common to odoo.tests.
+          In Odoo 18.0 the Form class is exposed directly from the odoo.tests package.
+        detection:
+          file_globs:
+            - 'tests/**/*.py'
+            - '**/*test*.py'
+          hints:
+            - from odoo.tests.common import Form
+        action:
+          kind: replace_literal
+          from: from odoo.tests.common import Form
+          to: from odoo.tests import Form
+
+      - id: python.product.detailed_type
+        scope: python
+        severity: required
+        auto_apply: false
+        summary: >
+          Replace the 'detailed_type' product field with 'type' (and 'is_storable': True
+          for storable products). The detailed_type computed alias was removed in Odoo 18.0.
+        detection:
+          file_globs:
+            - '**/*.py'
+          hints:
+            - detailed_type
+        action:
+          kind: review_only
+          recommendation: >
+            Replace 'detailed_type' in product record creation/writes as follows:
+              - 'detailed_type': 'product'  →  'type': 'consu', 'is_storable': True
+              - 'detailed_type': 'consu'    →  'type': 'consu'
+              - 'detailed_type': 'service'  →  'type': 'service'
+            Also update search domains that filter on detailed_type. For fields/domain
+            values of 'product' (storable), set type='consu' with is_storable=True.
+        manual_review_reason: >
+          The mapping from detailed_type to type + is_storable depends on the original
+          value ('product', 'consu', or 'service') and the business intent. Storable vs
+          consumable distinction must be preserved correctly.
+
+      - id: python.search_fetch.to_search
+        scope: python
+        severity: required
+        auto_apply: false
+        summary: >
+          Replace search_fetch() method overrides (17.0 pattern) with search() overrides
+          decorated with @api.readonly. In Odoo 18.0, search() is again the correct
+          method to override for domain filtering.
+        detection:
+          file_globs:
+            - '**/*.py'
+          hints:
+            - def search_fetch(
+            - search_fetch
+        action:
+          kind: review_only
+          recommendation: >
+            Replace:
+              @api.model
+              def search_fetch(self, domain, field_names, offset=0, limit=None, order=None):
+                  domain += [...]
+                  return super().search_fetch(domain, field_names, ...)
+            With:
+              @api.model
+              @api.readonly
+              @api.returns('self')
+              def search(self, domain, offset=0, limit=None, order=None):
+                  domain += [...]
+                  return super().search(domain, offset=offset, limit=limit, order=order)
+            Drop the field_names parameter entirely. Review any logic that depended on it.
+        manual_review_reason: >
+          The field_names parameter from search_fetch is removed. Any logic that inspected
+          field_names must be reworked. The @api.readonly decorator semantics must also be
+          understood before applying.
+
+      - id: manifest.depends.stock_delivery
+        scope: manifest
+        severity: required
+        auto_apply: true
+        summary: >
+          Replace the 'stock_delivery' dependency with 'delivery' in __manifest__.py.
+          The stock_delivery module was merged into the delivery module in Odoo 18.0.
+        detection:
+          files:
+            - __manifest__.py
+          hints:
+            - stock_delivery
+        action:
+          kind: replace_literal
+          from: "'stock_delivery'"
+          to: "'delivery'"
+
+      - id: python.procurement.signature_change
+        scope: python
+        severity: required
+        auto_apply: false
+        summary: >
+          Update overrides of _prepare_purchase_order_line_from_procurement to accept
+          three new parameters (location_dest_id, name, origin) inserted between
+          product_uom and company_id in Odoo 18.0.
+        detection:
+          file_globs:
+            - '**/*.py'
+          hints:
+            - _prepare_purchase_order_line_from_procurement
+        action:
+          kind: review_only
+          recommendation: >
+            Change the method signature from:
+              def _prepare_purchase_order_line_from_procurement(
+                  self, product_id, product_qty, product_uom, company_id, values, po):
+            To:
+              def _prepare_purchase_order_line_from_procurement(
+                  self, product_id, product_qty, product_uom,
+                  location_dest_id, name, origin, company_id, values, po):
+            Update all super() calls to pass the new parameters through accordingly.
+            Review whether the override logic can benefit from the new location_dest_id,
+            name, or origin values.
+        manual_review_reason: >
+          New parameters must be forwarded to super() correctly. Override logic may need
+          to be updated if it depends on company_id or values positionally.
+
+      - id: python.available_carriers.signature_change
+        scope: python
+        severity: required
+        auto_apply: false
+        summary: >
+          Update overrides of delivery.carrier.available_carriers() to drop the 'order'
+          parameter. The parameter was removed in Odoo 18.0.
+        detection:
+          file_globs:
+            - '**/*.py'
+          hints:
+            - def available_carriers(
+            - available_carriers(
+        action:
+          kind: review_only
+          recommendation: >
+            Change the signature from:
+              def available_carriers(self, partner, order):
+                  ...
+                  super(...).available_carriers(partner, order)
+            To:
+              def available_carriers(self, partner):
+                  ...
+                  super(...).available_carriers(partner)
+            Rework any logic inside the method that previously read from 'order'.
+            Find and update all call sites that passed 'order' as the second argument.
+        manual_review_reason: >
+          Any logic that read from the 'order' parameter must be reworked. All call sites
+          passing the order argument must be found and updated simultaneously.
+
+      - id: tests.picking.button_validate_to_action_done
+        scope: tests
+        severity: required
+        auto_apply: false
+        summary: >
+          In tests, replace picking.button_validate() with picking._action_done()
+          after setting move quantities when no backorder dialog is expected.
+          The button_validate wizard flow changed in Odoo 18.0.
+        detection:
+          file_globs:
+            - 'tests/**/*.py'
+            - '**/*test*.py'
+          hints:
+            - button_validate
+            - picking
+        action:
+          kind: review_only
+          recommendation: >
+            When a test directly validates a picking without expecting a backorder dialog,
+            replace:
+              picking.move_ids.quantity = <qty>
+              picking.button_validate()
+            With:
+              picking.move_ids.quantity = <qty>
+              picking._action_done()
+            Keep button_validate() only in tests that explicitly test the backorder
+            or immediate-transfer wizard flows.
+        manual_review_reason: >
+          Only correct when no interactive wizard is expected. Tests that intentionally
+          test the backorder dialog must keep button_validate() with appropriate wizard
+          mocking.
+
+      - id: python.zip.strict_false
+        scope: python
+        severity: recommended
+        auto_apply: true
+        summary: >
+          Add strict=False to zip() calls in create() / write() methods that iterate
+          records and vals_list in parallel, prevents StrictZip errors under Python 3.12+.
+        detection:
+          file_globs:
+            - '**/*.py'
+          hints:
+            - 'zip(records'
+            - 'zip(self'
+            - vals_list
+        action:
+          kind: replace_regex
+          pattern: '\bzip\((\s*(?:records|self|res)\s*,\s*vals_list\s*)\)'
+          replacement: 'zip(\1, strict=False)'
+
+      - id: validation.post_migration.tests
+        scope: workflow
+        severity: required
+        auto_apply: false
+        summary: Run module tests after migration edits and before final validation.
+        detection:
+          hints:
+            - tests_pending
+        action:
+          kind: invoke_skill
+          skill: odoo-tests
+
+      - id: validation.post_migration.module_check
+        scope: workflow
+        severity: required
+        auto_apply: false
+        summary: Run module validation after tests are green.
+        detection:
+          hints:
+            - validation_pending
+        action:
+          kind: invoke_skill
+          skill: odoo-validate-module
