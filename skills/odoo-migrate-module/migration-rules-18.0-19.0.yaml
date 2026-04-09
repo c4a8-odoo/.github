@@ -207,6 +207,198 @@ supported_paths:
           recommendation: Create explicit fixtures or ensure the required records are installed by the test setup.
         manual_review_reason: Test data assumptions differ per module and require local fixture knowledge.
 
+      - id: python.sql_constraints.models_constraint
+        scope: python
+        severity: required
+        auto_apply: false
+        summary: Replace _sql_constraints list with individual models.Constraint class attributes.
+        detection:
+          file_globs:
+            - '**/*.py'
+          hints:
+            - _sql_constraints
+        action:
+          kind: review_only
+          recommendation: >
+            Replace each tuple in _sql_constraints with a named class-level
+            attribute using models.Constraint. Example:
+              _name_uniq = models.Constraint('unique(name)', 'Name must be unique!')
+            Make sure 'models' is imported from odoo. The attribute name
+            should be a short snake_case descriptor (e.g. _check_probability).
+        manual_review_reason: >
+          Each entry must be converted individually: the tuple (name, sql, message)
+          becomes <attr_name> = models.Constraint(sql, message). The attribute
+          name is chosen by the developer and is not derivable automatically.
+
+      - id: python.translation.env_method
+        scope: python
+        severity: required
+        auto_apply: false
+        summary: Replace bare _() translation calls with self.env._() and remove the _ import from odoo.
+        detection:
+          file_globs:
+            - '**/*.py'
+          hints:
+            - 'from odoo import _'
+        action:
+          kind: review_only
+          recommendation: >
+            Remove _ from the 'from odoo import' statement. Replace every
+            _("text") call in method bodies with self.env._("text"). In
+            lambda defaults or places where self is not available, pass the
+            translated string from the caller that has access to self.env.
+        manual_review_reason: >
+          Lambda defaults, classmethod bodies, and module-level code do not
+          always have access to self. Each occurrence must be reviewed to
+          ensure the env is available at the call site before applying
+          self.env._().
+
+      - id: python.imports.osv_expression_import
+        scope: python
+        severity: required
+        auto_apply: true
+        summary: Replace 'from odoo.osv import expression' with 'from odoo.fields import Domain'.
+        detection:
+          file_globs:
+            - '**/*.py'
+          hints:
+            - from odoo.osv import expression
+        action:
+          kind: replace_literal
+          from: from odoo.osv import expression
+          to: from odoo.fields import Domain
+
+      - id: python.expression.method_calls
+        scope: python
+        severity: required
+        auto_apply: true
+        summary: Replace expression.AND() and expression.OR() calls with Domain.AND() and Domain.OR().
+        detection:
+          file_globs:
+            - '**/*.py'
+          hints:
+            - expression.AND(
+            - expression.OR(
+        action:
+          kind: replace_regex
+          pattern: 'expression\.(AND|OR)\('
+          replacement: 'Domain.\1('
+
+      - id: python.unlink.ondelete_decorator
+        scope: python
+        severity: required
+        auto_apply: false
+        summary: Replace unlink() validation guards with the @api.ondelete(at_uninstall=False) decorator.
+        detection:
+          file_globs:
+            - '**/*.py'
+          hints:
+            - def unlink(self)
+        action:
+          kind: review_only
+          recommendation: >
+            Extract any UserError validation from unlink() into a separate
+            method decorated with @api.ondelete(at_uninstall=False). Remove
+            the unlink() override entirely unless it has side-effects beyond
+            validation. The decorator method must NOT call super().unlink().
+            Example:
+              @api.ondelete(at_uninstall=False)
+              def _unlink_if_draft(self):
+                  for rec in self:
+                      if rec.state != 'draft':
+                          raise UserError(self.env._('Cannot delete.'))
+        manual_review_reason: >
+          The split between validation-only logic and other side-effects in
+          unlink() requires manual judgement. Any logic beyond raising a
+          UserError must be moved to write(), create(), or unlink hooks
+          rather than converted to the decorator.
+
+      - id: xml.search.group_expand_attrs
+        scope: xml
+        severity: required
+        auto_apply: false
+        summary: Remove 'expand' and 'string' attributes from <group> elements inside <search> views.
+        detection:
+          file_globs:
+            - '**/*.xml'
+          hints:
+            - expand=
+            - 'string="Group By'
+        action:
+          kind: review_only
+          recommendation: >
+            In XML <search> view arches, locate every <group expand="..."
+            string="..."> element and remove the expand and string attributes,
+            leaving only <group>. These attributes are no longer supported in
+            Odoo 19.0 search views.
+        manual_review_reason: >
+          The attributes must be removed only from <group> elements that are
+          direct children of <search>, not from unrelated uses of expand or
+          string elsewhere in the file.
+
+      - id: python.fields.auto_join_renamed
+        scope: python
+        severity: required
+        auto_apply: true
+        summary: Rename deprecated auto_join= field parameter to bypass_search_access=.
+        detection:
+          file_globs:
+            - '**/*.py'
+          hints:
+            - auto_join=
+        action:
+          kind: replace_literal
+          from: auto_join=
+          to: bypass_search_access=
+
+      - id: python.timezone.env_tz
+        scope: python
+        severity: recommended
+        auto_apply: false
+        summary: Review manual timezone lookups that should use the new self.env.tz property in 19.0.
+        detection:
+          file_globs:
+            - '**/*.py'
+          hints:
+            - 'pytz.timezone'
+            - "context.get('tz')"
+            - "context.get(\"tz\")"
+        action:
+          kind: review_only
+          recommendation: >
+            Replace patterns like pytz.timezone(self.env.context.get('tz', ...))
+            or pytz.timezone(self.env.user.tz) with self.env.tz. The new
+            env.tz property resolves the timezone automatically using the
+            context, then the user's profile, then falling back to UTC.
+        manual_review_reason: >
+          Not all pytz.timezone calls are candidates for replacement; only
+          those that resolve the current user's or context's timezone. Calls
+          that use a fixed or explicitly passed timezone string must not be
+          changed.
+
+      - id: python.cache.ormcache_context
+        scope: python
+        severity: required
+        auto_apply: false
+        summary: Replace deprecated ormcache_context() with ormcache() and read context values directly.
+        detection:
+          file_globs:
+            - '**/*.py'
+          hints:
+            - ormcache_context(
+        action:
+          kind: review_only
+          recommendation: >
+            Replace @tools.ormcache_context(...) with @tools.ormcache() and
+            access context values inside the method body via
+            self.env.context.get('key'). The cache key will no longer include
+            context values automatically; add explicit key parameters to
+            ormcache() if the cached value varies by context.
+        manual_review_reason: >
+          Each ormcache_context call must be reviewed to identify which
+          context keys affect the cached value and whether those keys need to
+          be promoted to explicit ormcache() parameters.
+
       - id: validation.post_migration.tests
         scope: workflow
         severity: required
