@@ -457,7 +457,7 @@ supported_paths:
         auto_apply: true
         summary: >
           Add strict=False to zip() calls in create() / write() methods that iterate
-          records and vals_list in parallel. Prevents StrictZip errors under Python 3.12+.
+          records and vals_list in parallel, prevents StrictZip errors under Python 3.12+.
         detection:
           file_globs:
             - '**/*.py'
