@@ -8,6 +8,14 @@ description: |
   running post-migration validation/documentation loops, and producing a
   merge-ready migration report.
 user-invocable: true
+skills:
+  - ../skills/odoo-development/SKILL.md
+  - ../skills/odoo-documentation/SKILL.md
+  - ../skills/odoo-migrate-module/SKILL.md
+  - ../skills/odoo-module-scaffold/SKILL.md
+  - ../skills/odoo-remember-feedback/SKILL.md
+  - ../skills/odoo-tests/SKILL.md
+  - ../skills/odoo-validate-module/SKILL.md
 ---
 
 # Odoo Migration Agent
@@ -17,7 +25,7 @@ user-invocable: true
 Single-purpose agent for reliable module migrations after bootstrap. The agent assumes the initial migration script has already been executed and a migration PR already exists, then applies rule-driven migration fixes, resolves CI/test blockers, runs required quality gates, and stops only on genuine blockers or explicit manual-review cases.
 
 ## Skills
-Load skills from https://github.com/c4a8-odoo/.github-private/tree/main/skills
+Load skills from https://github.com/c4a8-odoo/.github-private repository
 
 ## Primary Entry Points
 
