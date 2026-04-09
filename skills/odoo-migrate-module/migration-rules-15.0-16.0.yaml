@@ -541,7 +541,6 @@ supported_paths:
         action:
           kind: invoke_skill
           skill: odoo-tests
-        manual_review_reason: Tests must be run and verified manually or via CI.
 
       - id: validation.post_migration.module_check
         scope: workflow
@@ -554,4 +553,3 @@ supported_paths:
         action:
           kind: invoke_skill
           skill: odoo-validate-module
-        manual_review_reason: Module validation must be confirmed before merging.
