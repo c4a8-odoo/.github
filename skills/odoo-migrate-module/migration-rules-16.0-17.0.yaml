@@ -292,8 +292,7 @@ supported_paths:
 
             3. Remove manual creation of self.partner / cls.partner in setUpClass if the
                test only needs a basic res.partner record — BaseCommon provides self.partner
-               automatically (it is the base 'res.partner' record via env.ref('base.partner_root')
-               or a simple fixture).
+               as a pre-built fixture (a simple res.partner record created in setUpClass).
 
             Note: TransactionCase still works in 17.0. Only migrate when the test setup
             matches what BaseCommon provides, to avoid breaking existing fixture logic.
@@ -451,9 +450,10 @@ supported_paths:
               readme/ROADMAP.rst      → readme/ROADMAP.md
               readme/CREDITS.rst      → readme/CREDITS.md
 
-            Also add a pyproject.toml to the module root with the OCA template content:
-              [tool.poetry]
-              name = "odoo-addon-<module_name>"
+            Also add a pyproject.toml to the module root with the standard OCA template:
+              [build-system]
+              requires = ["whool"]
+              build-backend = "whool.buildapi"
 
             The README.rst at the module root is auto-generated and does not need manual
             conversion — it is regenerated from the readme/ directory fragments.
