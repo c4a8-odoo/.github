@@ -1,0 +1,581 @@
+schema_version: 1
+default_supported_path: 16.0->17.0
+
+state_contract:
+  required_keys:
+    - repo
+    - module
+    - source_version
+    - target_version
+    - branch
+    - repo_path
+    - stage
+    - status
+    - state_file
+  resume_stages:
+    - ready_for_ai
+    - ai_migration_done
+    - tests_pending
+    - tests_green
+    - validation_pending
+    - validation_green
+    - manual_review_required
+
+supported_paths:
+  16.0->17.0:
+    label: Odoo 16.0 to 17.0
+    target_manifest_version: 17.0.1.0.0
+    rules:
+      - id: manifest.version.bump
+        scope: manifest
+        severity: required
+        auto_apply: true
+        summary: Bump the module version to the 17.0 baseline.
+        detection:
+          files:
+            - __manifest__.py
+          hints:
+            - version
+            - 16.0.
+        action:
+          kind: replace_version
+          target: 17.0.1.0.0
+
+      - id: cleanup.legacy.migrations
+        scope: filesystem
+        severity: required
+        auto_apply: true
+        summary: Remove legacy migrations directories copied from the source branch.
+        detection:
+          paths:
+            - migrations/
+        action:
+          kind: delete_path
+          target: migrations/
+
+      - id: xml.attrs.invisible.to_inline
+        scope: xml
+        severity: required
+        auto_apply: false
+        summary: >
+          Replace the deprecated attrs="{'invisible': [...]}" dict syntax with inline
+          boolean Python expressions on the invisible= attribute. Odoo 17.0 dropped
+          support for the dict-based attrs attribute in view arch definitions.
+        detection:
+          file_globs:
+            - '**/*.xml'
+          hints:
+            - "attrs="
+            - "'invisible'"
+        action:
+          kind: review_only
+          recommendation: >
+            For each occurrence of attrs="{'invisible': [('field', '=', value)]}", replace
+            with invisible="field == value". Common mappings:
+              attrs="{'invisible': [('field', '=', False)]}"   → invisible="not field"
+              attrs="{'invisible': [('field', '!=', False)]}"  → invisible="field"
+              attrs="{'invisible': [('field', '=', True)]}"    → invisible="field"
+              attrs="{'invisible': [('field', '!=', True)]}"   → invisible="not field"
+              attrs="{'invisible': [('field', '=', 'value')]}" → invisible="field == 'value'"
+              attrs="{'invisible': [('field', '!=', 'value')]}"→ invisible="field != 'value'"
+              attrs="{'invisible': [('field', 'in', [...])]}"  → invisible="field in [...]"
+              attrs="{'invisible': [('field', 'not in', [...])]}" → invisible="field not in [...]"
+            When attrs combines invisible with required or readonly, split them into separate
+            attributes: invisible=, required=, readonly= individually.
+        manual_review_reason: >
+          The old domain-list syntax allows OR/AND combinations and negated operators that
+          do not map directly to simple Python expressions. Each attrs value must be reviewed
+          to produce the semantically correct boolean expression for 17.0.
+
+      - id: xml.attrs.required.to_inline
+        scope: xml
+        severity: required
+        auto_apply: false
+        summary: >
+          Replace attrs="{'required': [...]}" with inline required= boolean expressions.
+          The attrs dict is removed in Odoo 17.0.
+        detection:
+          file_globs:
+            - '**/*.xml'
+          hints:
+            - "attrs="
+            - "'required'"
+        action:
+          kind: review_only
+          recommendation: >
+            Replace attrs="{'required': [('field', '=', value)]}" with
+            required="field == value". Apply the same boolean expression mapping as
+            described in xml.attrs.invisible.to_inline. When attrs combines required with
+            invisible or readonly, split into separate attributes.
+        manual_review_reason: >
+          Complex domain conditions with OR/AND operators and negation require individual
+          review to produce the correct 17.0 inline expression.
+
+      - id: xml.attrs.readonly.to_inline
+        scope: xml
+        severity: required
+        auto_apply: false
+        summary: >
+          Replace attrs="{'readonly': [...]}" with inline readonly= boolean expressions.
+          The attrs dict is removed in Odoo 17.0.
+        detection:
+          file_globs:
+            - '**/*.xml'
+          hints:
+            - "attrs="
+            - "'readonly'"
+        action:
+          kind: review_only
+          recommendation: >
+            Replace attrs="{'readonly': [('state', 'not in', ['draft'])]}" with
+            readonly="state != 'draft'". For state-gated readonly patterns commonly used
+            with READONLY_STATES dicts in Python models, replace with inline expressions
+            such as readonly="state in ['confirmed', 'cancel']". Apply the same boolean
+            expression mapping as xml.attrs.invisible.to_inline.
+        manual_review_reason: >
+          State-based readonly patterns may involve multiple states and logic that must
+          be expressed differently in the new inline syntax.
+
+      - id: python.fields.states.remove
+        scope: python
+        severity: required
+        auto_apply: false
+        summary: >
+          Remove the deprecated states= parameter from field definitions. Odoo 17.0
+          removes support for state-based readonly/required/invisible toggling via the
+          field-level states= dict. All such logic must move to XML view attributes.
+        detection:
+          file_globs:
+            - '**/*.py'
+          hints:
+            - 'states={'
+            - 'READONLY_STATES'
+            - "states=READONLY_STATES"
+        action:
+          kind: review_only
+          recommendation: >
+            1. Remove the states= parameter (and any associated READONLY_STATES dict
+               constant) from every field definition in models.
+            2. In the corresponding XML views, add inline readonly= (or required=) boolean
+               expressions to each field element, e.g.
+               readonly="state in ['confirmed', 'cancel']"
+            Example migration:
+              Before (Python): vehicle_id = fields.Many2one('fleet.vehicle', states=READONLY_STATES)
+              Before (XML):    <field name="vehicle_id"/>
+              After  (Python): vehicle_id = fields.Many2one('fleet.vehicle')
+              After  (XML):    <field name="vehicle_id" readonly="state in ['confirmed', 'cancel']"/>
+        manual_review_reason: >
+          Each field may appear in multiple views (form, list, kanban) and the readonly
+          logic must be reproduced accurately in every relevant view arch. States that
+          were conditionally editable must be mapped to the correct inline expression for
+          each view.
+
+      - id: python.hooks.env_signature
+        scope: python
+        severity: required
+        auto_apply: false
+        summary: >
+          Update post_init_hook, pre_init_hook, and uninstall_hook signatures from
+          (cr, registry) / (cr) to (env). Odoo 17.0 changed all hook callbacks to
+          receive a populated Environment object instead of a raw cursor and registry.
+        detection:
+          file_globs:
+            - '**/*.py'
+          hints:
+            - def post_init_hook(
+            - def pre_init_hook(
+            - def uninstall_hook(
+        action:
+          kind: review_only
+          recommendation: >
+            Change the hook signatures:
+              Before: def post_init_hook(cr, registry):
+              After:  def post_init_hook(env):
+
+              Before: def pre_init_hook(cr):
+              After:  def pre_init_hook(env):
+
+              Before: def uninstall_hook(cr, registry):
+              After:  def uninstall_hook(env):
+
+            Inside the hook body:
+              - Replace cr.execute(...) with env.cr.execute(...)
+              - Replace registry.models["model"]._fields with env["model"]._fields
+              - Replace registry["model"] with env["model"]
+              - Any record browsing can now use env["model"].browse(ids) directly.
+        manual_review_reason: >
+          Hook bodies may use cr and registry in complex ways. Each reference must be
+          individually updated. Be careful with env transaction boundaries — env is a
+          full Odoo Environment and commits are handled by the caller.
+
+      - id: python.super.no_class_args
+        scope: python
+        severity: required
+        auto_apply: true
+        summary: >
+          Replace Python 2-style super(ClassName, self) or super(ClassName, cls) calls
+          with the bare super() form. Odoo 17.0 requires Python 3.10+ and all Python 2
+          compatibility shims should be removed.
+        detection:
+          file_globs:
+            - '**/*.py'
+          hints:
+            - 'super('
+        action:
+          kind: replace_regex
+          pattern: '\bsuper\(\s*\w[\w.]*\s*,\s*(?:self|cls)\s*\)'
+          replacement: 'super()'
+
+      - id: python.orm.command_class
+        scope: python
+        severity: recommended
+        auto_apply: false
+        summary: >
+          Replace legacy ORM tuple commands (0, 0, vals), (1, id, vals), (4, id),
+          (6, 0, ids) with the Command helper class introduced in Odoo 16.0 and
+          preferred in 17.0 for readability and type safety.
+        detection:
+          file_globs:
+            - '**/*.py'
+          hints:
+            - '(0, 0,'
+            - '(4, '
+            - '(6, 0,'
+            - '(2, '
+        action:
+          kind: review_only
+          recommendation: >
+            Replace the integer-tuple ORM commands with Command class equivalents.
+            Add 'from odoo import Command' to the import block if not already present.
+            Mapping:
+              (0, 0, vals)     → Command.create(vals)
+              (1, id, vals)    → Command.update(id, vals)
+              (2, id)          → Command.delete(id)
+              (3, id)          → Command.unlink(id)
+              (4, id)          → Command.link(id)
+              (5,)             → Command.clear()
+              (6, 0, ids)      → Command.set(ids)
+            Example:
+              Before: 'order_line': [(0, 0, {'product_id': p.id, 'qty': 1})]
+              After:  'order_line': [Command.create({'product_id': p.id, 'qty': 1})]
+        manual_review_reason: >
+          Context matters — tuple commands in write() calls, wizard create() args, and
+          test fixtures each need individual inspection to pick the correct Command
+          method and to ensure the Command import is added at the top of the file.
+
+      - id: tests.base_common.migrate
+        scope: tests
+        severity: recommended
+        auto_apply: false
+        summary: >
+          Migrate test classes from TransactionCase to BaseCommon to use the standard
+          OCA/Odoo 17.0 test base that provides pre-created partner and company fixtures
+          (self.partner, self.env.company).
+        detection:
+          file_globs:
+            - 'tests/**/*.py'
+            - '**/*test*.py'
+          hints:
+            - TransactionCase
+            - from odoo.tests
+        action:
+          kind: review_only
+          recommendation: >
+            1. Change the import:
+               Before: from odoo.tests import TransactionCase
+                  (or) from odoo.tests.common import TransactionCase
+               After:  from odoo.addons.base.tests.common import BaseCommon
+
+            2. Change the class base:
+               Before: class TestFoo(TransactionCase):
+               After:  class TestFoo(BaseCommon):
+
+            3. Remove manual creation of self.partner / cls.partner in setUpClass if the
+               test only needs a basic res.partner record — BaseCommon provides self.partner
+               automatically (it is the base 'res.partner' record via env.ref('base.partner_root')
+               or a simple fixture).
+
+            Note: TransactionCase still works in 17.0. Only migrate when the test setup
+            matches what BaseCommon provides, to avoid breaking existing fixture logic.
+        manual_review_reason: >
+          BaseCommon provides specific fixtures (self.partner, etc.) that may conflict
+          with test-specific partner setup. Tests that create their own partners or
+          companies in setUpClass must not blindly switch to BaseCommon without verifying
+          the fixture names do not collide.
+
+      - id: python.message_post.content_subtype
+        scope: python
+        severity: required
+        auto_apply: true
+        summary: >
+          Remove the deprecated content_subtype='plaintext' keyword argument from
+          message_post() calls. The parameter was removed in Odoo 17.0.
+        detection:
+          file_globs:
+            - '**/*.py'
+          hints:
+            - content_subtype
+            - message_post
+        action:
+          kind: replace_regex
+          pattern: ',\s*content_subtype\s*=\s*[''"]plaintext[''"]'
+          replacement: ''
+
+      - id: xml.delivery.refs.stock_delivery
+        scope: xml
+        severity: required
+        auto_apply: false
+        summary: >
+          Update view inherit_id references that pointed to the legacy 'delivery' module
+          for picking/carrier views. In Odoo 17.0 the delivery module was reorganised and
+          several core picking views moved to 'stock_delivery'.
+        detection:
+          file_globs:
+            - '**/*.xml'
+          hints:
+            - 'ref="delivery.'
+            - delivery.view_picking_withcarrier
+            - delivery.vpicktree_view_tree
+        action:
+          kind: review_only
+          recommendation: >
+            For inherit_id refs that reference delivery module picking views, verify whether
+            the view now lives in stock_delivery in the 17.0 codebase. Common changes:
+              ref="delivery.view_picking_withcarrier_out_form"
+                → ref="stock_delivery.view_picking_withcarrier_out_form"
+              ref="delivery.vpicktree_view_tree"
+                → ref="stock_delivery.vpicktree_view_tree"
+            Also update __manifest__.py 'depends' to include 'stock_delivery' where needed.
+            Verify by checking the actual 17.0 Odoo source for the view's module location.
+        manual_review_reason: >
+          Not all delivery. refs moved to stock_delivery. Only picking/carrier-specific
+          views were relocated. Other delivery module records remain under the delivery
+          namespace. Each ref must be verified against the 17.0 Odoo source.
+
+      - id: manifest.depends.stock_delivery
+        scope: manifest
+        severity: recommended
+        auto_apply: false
+        summary: >
+          Add 'stock_delivery' to module dependencies where the module inherits or extends
+          carrier/picking views that moved from 'delivery' to 'stock_delivery' in Odoo 17.0.
+        detection:
+          files:
+            - __manifest__.py
+          hints:
+            - "'delivery'"
+            - delivery
+        action:
+          kind: review_only
+          recommendation: >
+            If the module uses views or models from the stock_delivery module (formerly part
+            of delivery), add 'stock_delivery' to the 'depends' list in __manifest__.py.
+            Check whether the module's XML views reference stock_delivery views and ensure
+            the dependency is declared.
+        manual_review_reason: >
+          Only modules that explicitly inherit stock_delivery views or use its models
+          need this dependency. Not all delivery module consumers are affected.
+
+      - id: python.read_group.new_api
+        scope: python
+        severity: recommended
+        auto_apply: false
+        summary: >
+          Migrate .read_group() calls to the new ._read_group() API introduced in
+          Odoo 16.0 and preferred in 17.0. The new API returns tuples of (group_record,
+          aggregated_value) instead of dicts, and has a cleaner signature.
+        detection:
+          file_globs:
+            - '**/*.py'
+          hints:
+            - .read_group(
+        action:
+          kind: review_only
+          recommendation: >
+            Replace the public read_group() with the private _read_group() API.
+            The new signature is: _read_group(domain, groupby, aggregates)
+            The return value is a list of tuples — one tuple per group — where each
+            element corresponds to a groupby field (as a record) or an aggregate value.
+
+            Example migration:
+              Before:
+                results = self.env["res.partner"].read_group(
+                    [("assigned_partner_id", "in", self.ids)],
+                    fields=["assigned_partner_id"],
+                    groupby=["assigned_partner_id"],
+                )
+                for row in results:
+                    partner_id = row["assigned_partner_id"][0]
+                    count = row["assigned_partner_id_count"]
+
+              After:
+                results = self.env["res.partner"]._read_group(
+                    [("assigned_partner_id", "in", self.ids)],
+                    ["assigned_partner_id"],
+                    ["__count"],
+                )
+                data = {partner.id: count for partner, count in results}
+
+            Note: groupby fields become record objects (not dicts) in the result tuples.
+        manual_review_reason: >
+          The return format of _read_group() differs significantly from read_group().
+          Each call site must be individually updated to destructure the tuple result
+          correctly. Aggregate field names also change (e.g. field_count → __count).
+
+      - id: docs.readme.rst_to_md
+        scope: filesystem
+        severity: recommended
+        auto_apply: false
+        summary: >
+          Convert module readme documentation files from .rst to .md format. OCA modules
+          migrated to 17.0 adopt Markdown-formatted readme files in the readme/ directory,
+          and a pyproject.toml is added to each module root.
+        detection:
+          paths:
+            - readme/
+          hints:
+            - readme/DESCRIPTION.rst
+            - readme/CONFIGURE.rst
+            - readme/CONTRIBUTORS.rst
+            - readme/ROADMAP.rst
+            - readme/CREDITS.rst
+        action:
+          kind: review_only
+          recommendation: >
+            For each .rst file under readme/, create a corresponding .md file with the
+            same content converted from reStructuredText to Markdown, then delete the
+            .rst file. Common files to convert:
+              readme/DESCRIPTION.rst  → readme/DESCRIPTION.md
+              readme/CONFIGURE.rst    → readme/CONFIGURE.md
+              readme/CONTRIBUTORS.rst → readme/CONTRIBUTORS.md
+              readme/ROADMAP.rst      → readme/ROADMAP.md
+              readme/CREDITS.rst      → readme/CREDITS.md
+
+            Also add a pyproject.toml to the module root with the OCA template content:
+              [tool.poetry]
+              name = "odoo-addon-<module_name>"
+
+            The README.rst at the module root is auto-generated and does not need manual
+            conversion — it is regenerated from the readme/ directory fragments.
+        manual_review_reason: >
+          RST-to-Markdown conversion must preserve all content accurately. Tables,
+          code blocks, and cross-references differ between the two formats and must
+          be manually verified. Some rst-specific directives have no direct Markdown
+          equivalent.
+
+      - id: xml.view.list_noupdate
+        scope: xml
+        severity: required
+        auto_apply: false
+        summary: >
+          Review ir.ui.view records that set noupdate="1" and ensure they are still
+          appropriate in 17.0. Several upstream view external IDs and arches changed
+          in 17.0, which may break view inheritance if the module's view records are
+          frozen via noupdate.
+        detection:
+          file_globs:
+            - '**/*.xml'
+          hints:
+            - noupdate="1"
+            - ir.ui.view
+        action:
+          kind: review_only
+          recommendation: >
+            For each ir.ui.view record with noupdate="1", verify that the inherit_id
+            reference still exists in Odoo 17.0 and that the xpath expression matches
+            the updated upstream arch. If the upstream view changed (e.g. attrs were
+            replaced with inline expressions), the xpath may no longer match and the
+            view override will silently fail.
+        manual_review_reason: >
+          Whether to keep noupdate depends on whether the view record is a data record
+          or a code record. View records should generally not be noupdate unless they
+          contain customer-specific customisations.
+
+      - id: python.api.model_create_multi
+        scope: python
+        severity: required
+        auto_apply: false
+        summary: >
+          Ensure all create() method overrides use @api.model_create_multi and accept
+          a vals_list argument. Odoo 17.0 enforces the multi-record create pattern;
+          single-record @api.model create() overrides are deprecated and may fail.
+        detection:
+          file_globs:
+            - '**/*.py'
+          hints:
+            - def create(self
+            - '@api.model'
+        action:
+          kind: review_only
+          recommendation: >
+            Replace single-record create() overrides with the multi-record form:
+              Before:
+                @api.model
+                def create(self, vals):
+                    # do something with vals
+                    return super().create(vals)
+
+              After:
+                @api.model_create_multi
+                def create(self, vals_list):
+                    for vals in vals_list:
+                        # do something with vals
+                    return super().create(vals_list)
+
+            Ensure the logic that previously operated on a single vals dict is correctly
+            adapted to iterate over vals_list. Pre-create hooks that set default values
+            should operate on each dict in vals_list separately.
+        manual_review_reason: >
+          The vals loop body may have side effects or db lookups that are inefficient
+          when called per-record inside a loop. Batching those lookups before the loop
+          may be necessary for correctness and performance.
+
+      - id: xml.search.group_expand
+        scope: xml
+        severity: recommended
+        auto_apply: false
+        summary: >
+          Review <group expand="0"> attributes in search view arches. In Odoo 17.0 the
+          expand attribute behaviour changed; filters inside expand="0" groups may not
+          collapse correctly without adjustment.
+        detection:
+          file_globs:
+            - '**/*.xml'
+          hints:
+            - expand="0"
+            - expand="1"
+        action:
+          kind: review_only
+          recommendation: >
+            For each <group expand="0" string="Group By"> element inside a <search>
+            arch, verify the element renders correctly in 17.0. If the group is
+            expected to start collapsed, keep expand="0". If the behaviour has changed,
+            remove the attribute to use the default rendering.
+        manual_review_reason: >
+          The expand attribute is context-sensitive and its effect varies depending on
+          the view mode and Odoo version. Manual UI testing is required to confirm
+          the desired behaviour.
+
+      - id: validation.post_migration.tests
+        scope: workflow
+        severity: required
+        auto_apply: false
+        summary: Run module tests after migration edits and before final validation.
+        detection:
+          hints:
+            - tests_pending
+        action:
+          kind: invoke_skill
+          skill: odoo-tests
+
+      - id: validation.post_migration.module_check
+        scope: workflow
+        severity: required
+        auto_apply: false
+        summary: Run module validation after tests are green.
+        detection:
+          hints:
+            - validation_pending
+        action:
+          kind: invoke_skill
+          skill: odoo-validate-module
