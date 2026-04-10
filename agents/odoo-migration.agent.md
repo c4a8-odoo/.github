@@ -25,7 +25,9 @@ skills:
 Single-purpose agent for reliable module migrations after bootstrap. The agent assumes the initial migration script has already been executed and a migration PR already exists, then applies rule-driven migration fixes, resolves CI/test blockers, runs required quality gates, and stops only on genuine blockers or explicit manual-review cases.
 
 ## Skills
-Load skills from https://github.com/c4a8-odoo/.github-private repository
+- `odoo-development`: https://github.com/c4a8-odoo/.github/skills/development
+- `odoo-migrate-module`: https://github.com/c4a8-odoo/.github/skills/odoo-migrate-module
+- `odoo-documentation`: https://github.com/c4a8-odoo/.github/skills/odoo-documentation
 
 ## Primary Entry Points
 
@@ -118,5 +120,4 @@ PR body policy:
 - Prefer the dedicated `@odoo-migration` agent for end-to-end migrations.
 - Use the `odoo-migrate-module` skill as the migration reasoning engine, not as a standalone human checklist.
 - Keep the post-bootstrap workflow deterministic and the agent iterative.
-- Store reusable migration lessons with `odoo-remember-feedback` only when they generalize beyond a single module.
 - Investigate ALL CI failures by reading the actual test output — specifically the errors that caused failure section in the test logs. Fix any code-level failures, not just dependency install failures.

@@ -1,11 +1,11 @@
 ---
 name: odoo-migrate-module
-description: Rule-driven Odoo module migration skill for 18.0 to 19.0 migrations, used by the dedicated odoo-migration agent.
+description: Rule-driven Odoo module migration skill for migrations between 15.0 and 19.0.
 ---
 
 # Odoo Migrate Module Skill
 
-Purpose: Rule-driven migration engine used by the dedicated `@odoo-migration` agent for reliable Odoo module migrations.
+Purpose: Rule-driven migration engine to update Odoo modules from one version to the next (e.g. 15.0 -> 16.0, 16.0 -> 17.0, etc.), with structured state management and clear escalation gates.
 
 ## When to Use
 
@@ -17,10 +17,12 @@ Use this skill when the task involves:
 
 Prefer the `@odoo-migration` agent for end-to-end migrations. Use this skill directly only when the migration has already been scoped and you are working inside that orchestration flow.
 
-## Current Support Level
+## Current Supported Rule Families
 
-- First-class support: `18.0 -> 19.0`
-- Future version paths should be added through `./migration-rules.yaml`
+- `15.0 -> 16.0`: `./migration-rules-15.0-16.0.yaml` 
+- `16.0 -> 17.0`: `./migration-rules-16.0-17.0.yaml` 
+- `17.0 -> 18.0`: `./migration-rules-17.0-18.0.yaml` 
+- `18.0 -> 19.0`: `./migration-rules-18.0-19.0.yaml` 
 
 ## Required Inputs
 
@@ -28,7 +30,6 @@ Capture or infer:
 - Module path and module name
 - Repository path and active branch
 - Source version and target version
-- Migration state file from `module-migration.sh`, when available
 - Current stage of the migration run and any prior blockers
 
 ## State-Aware Workflow
@@ -56,25 +57,6 @@ This skill is expected to operate on a migration run that moves through explicit
 8. After validation is green, hand off to `odoo-documentation` to create or update migration-relevant module documentation.
 9. Stop and escalate instead of forcing risky semantic rewrites.
 
-## 18.0 to 19.0 Rule Families
-
-The operational source of truth lives in `migration-rules.yaml`. The main rule families currently covered are:
-
-- Manifest normalization, including version bumping to `19.0.1.0.0`
-- Cleanup of legacy `migrations/` directories copied forward from the source branch
-- Mechanical framework updates such as `type="json" -> type="jsonrpc"`
-- Auto-apply import replacement: `from odoo.osv import expression` → `from odoo.fields import Domain`
-- Auto-apply Domain method calls: `expression.AND/OR` → `Domain.AND/OR`
-- Auto-apply field parameter rename: `auto_join=` → `bypass_search_access=`
-- Review-targeted Python API upgrades for `self._cr`, `self._uid`, `self._context`, and archive actions
-- Review-targeted `groups_id -> group_ids` updates where the target schema actually changed
-- Review-targeted translation pattern: bare `_()` → `self.env._()`
-- Review-targeted `_sql_constraints` list → `models.Constraint` class attributes
-- Review-targeted `unlink()` validation guards → `@api.ondelete(at_uninstall=False)` decorator
-- Review-targeted `ormcache_context()` → `ormcache()` with explicit context key parameters
-- Review-targeted timezone helpers: `pytz.timezone(...)` → `self.env.tz`
-- Review-targeted XML search view cleanup: remove deprecated `expand=` and `string=` from `<group>` elements
-- Test hardening for modules that implicitly relied on demo data being installed by default
 
 ## Manual-Review Gates
 
