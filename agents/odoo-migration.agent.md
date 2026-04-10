@@ -12,10 +12,7 @@ skills:
   - ../skills/odoo-development/SKILL.md
   - ../skills/odoo-documentation/SKILL.md
   - ../skills/odoo-migrate-module/SKILL.md
-  - ../skills/odoo-module-scaffold/SKILL.md
-  - ../skills/odoo-remember-feedback/SKILL.md
   - ../skills/odoo-tests/SKILL.md
-  - ../skills/odoo-validate-module/SKILL.md
 ---
 
 # Odoo Migration Agent
@@ -28,6 +25,7 @@ Single-purpose agent for reliable module migrations after bootstrap. The agent a
 - `odoo-development`: https://github.com/c4a8-odoo/.github/skills/development
 - `odoo-migrate-module`: https://github.com/c4a8-odoo/.github/skills/odoo-migrate-module
 - `odoo-documentation`: https://github.com/c4a8-odoo/.github/skills/odoo-documentation
+- `odoo-tests`: https://github.com/c4a8-odoo/.github/skills/odoo-tests
 
 ## Primary Entry Points
 

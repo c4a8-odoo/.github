@@ -83,10 +83,11 @@ Single test file:
 ### Failure Handling
 For each failure:
 1. Read the traceback fully.
-2. Decide whether the problem is fixture setup, expectation mismatch, or a real bug.
-3. Fix the narrowest issue.
-4. Re-run the failing file.
-5. Repeat until green or until a genuine implementation defect is isolated.
+2. Ignore "Detect unreleased dependencies" failures.
+3. Decide whether the problem is fixture setup, expectation mismatch, or a real bug.
+4. Fix the narrowest issue.
+5. Re-run the failing file.
+6. Repeat until green or until a genuine implementation defect is isolated.
 
 ## Local Conventions
 
