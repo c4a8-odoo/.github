@@ -107,6 +107,7 @@ Every run should return:
 - Test commands run and their results
 - Validation outcome and remaining blockers
 - Documentation files and screenshot assets created or updated
+- Run pre-commit at the very end
 - Final status: `completed` or `manual_review_required`
 
 PR body policy:
