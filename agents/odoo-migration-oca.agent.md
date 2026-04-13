@@ -227,6 +227,7 @@ After the script completes successfully, proceed to Step 2.
 - If Step 1 bootstraps a brand-new migration branch, allow the bootstrap script to create the initial draft PR. Otherwise, do not create a new PR and continue working on the existing one.
 - Update the existing PR with commits that resolve migration, CI, validation, and documentation issues.
 - Produce one final report with the rule hits, files changed, commands executed, blockers resolved, and remaining manual items.
+- If you fail pushing the commits to the remote branch, stop and report `manual_review_required` instead of trying to force pushes or creating new branches/PRs. Ask the calling agent to execute the push.
 
 ## Manual-Review Gates
 

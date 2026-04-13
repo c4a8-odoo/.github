@@ -89,6 +89,7 @@ This agent is part of https://github.com/c4a8-odoo/.github and needs additional 
 - Do not create the initial migration PR in this workflow; it already exists.
 - Update the existing PR with commits that resolve migration, CI, validation, and documentation issues.
 - Produce one final report with the rule hits, files changed, commands executed, blockers resolved, and remaining manual items.
+- If you fail pushing the commits to the remote branch, stop and report `manual_review_required` instead of trying to force pushes or creating new branches/PRs. Ask the calling agent to execute the push.
 
 ## Manual-Review Gates
 
