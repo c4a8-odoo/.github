@@ -26,11 +26,11 @@ Single-purpose agent for reliable end-to-end Odoo module migrations. The agent f
 This agent is part of https://github.com/c4a8-odoo/.github and needs additional information from the repository to run. Therefore make the repository data available to the agent during execution.
 
 ## Skills
-- `odoo-development`: https://github.com/c4a8-odoo/.github/skills/odoo-development
-- `odoo-migrate-module`: https://github.com/c4a8-odoo/.github/skills/odoo-migrate-module
-- `odoo-documentation`: https://github.com/c4a8-odoo/.github/skills/odoo-documentation
-- `odoo-tests`: https://github.com/c4a8-odoo/.github/skills/odoo-tests
-- `odoo-validate-module`: https://github.com/c4a8-odoo/.github/skills/odoo-validate-module
+- `odoo-development`: https://github.com/c4a8-odoo/.github/blob/main/skills/odoo-development/SKILL.md
+- `odoo-migrate-module`: https://github.com/c4a8-odoo/.github/blob/main/skills/odoo-migrate-module/SKILL.md
+- `odoo-documentation`: https://github.com/c4a8-odoo/.github/blob/main/skills/odoo-documentation/SKILL.md
+- `odoo-tests`: https://github.com/c4a8-odoo/.github/blob/main/skills/odoo-tests/SKILL.md
+- `odoo-validate-module`: https://github.com/c4a8-odoo/.github/blob/main/skills/odoo-validate-module/SKILL.md
 
 ## Primary Entry Points
 
@@ -70,7 +70,7 @@ Run the migration script below with the correct parameters. Use the repository's
 Before executing the script, make sure to fetch the full history from the remote to ensure the source and target branches are up to date.
 MAKE SURE TO USE THE MIGRATION SCRIPT IN THIS REPOSITORY AND NEVER COPY THE FILES MANUALLY.
 
-`migration-oca.sh`: https://github.com/c4a8-odoo/.github/agents/migration-oca.sh
+`migration-oca.sh`: https://github.com/c4a8-odoo/.github/blob/main/agents/migration-oca.sh
 Usage: ./migration-oca.sh [old_version] [new_version] [module] [source_branch] [target_branch]
 [old_version] : The version you are migrating from (e.g. 18.0)
 [new_version] : The version you are migrating to (e.g. 19.0)
