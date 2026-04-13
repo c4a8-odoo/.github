@@ -25,6 +25,7 @@ Prefer the `@odoo-migration` agent for end-to-end migrations. Use this skill dir
 - `18.0 -> 19.0`: `./migration-rules-18.0-19.0.yaml` 
 
 When the rules above are not sufficient to complete the migration, use these model specific extended rules:
+- `18.0 -> 19.0`: In `https://github.com/OCA/OpenUpgrade/tree/19.0/openupgrade_scripts/scripts` you may find module specific migration scripts for OCA and Odoo modules.
 - `18.0 -> 19.0`: `./migration-rules-odoo-18-19.md`
 - `18.0 -> 19.0`: `./migration-rules-enterprise-18-19.md`
 

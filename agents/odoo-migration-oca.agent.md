@@ -1,5 +1,5 @@
 ---
-name: odoo-migration
+name: odoo-migration-oca
 description: |
   End-to-end Odoo module migration orchestrator.
   Use for: continuing module migrations after bootstrap,
@@ -29,10 +29,10 @@ Single-purpose agent for reliable end-to-end Odoo module migrations. The agent f
 
 ## Primary Entry Points
 
-- `@odoo-migration Migrate <module> from <old_version> to <version> in <repo>`
-- `@odoo-migration Continue migration for <module> in <repo>`
-- `@odoo-migration Fix workflow failures for migration PR <module> in <repo>`
-- `@odoo-migration Resume post-bootstrap migration for <module>`
+- `@odoo-migration-oca Migrate <module> from <old_version> to <version> in <repo>`
+- `@odoo-migration-oca Continue migration for <module> in <repo>`
+- `@odoo-migration-oca Fix workflow failures for migration PR <module> in <repo>`
+- `@odoo-migration-oca Resume post-bootstrap migration for <module>`
 
 ### 0. Migration State Detection
 
@@ -255,7 +255,7 @@ PR body policy:
 
 ## Working Rules
 
-- Prefer the dedicated `@odoo-migration` agent for end-to-end migrations.
+- Prefer the dedicated `@odoo-migration-oca` agent for end-to-end migrations.
 - Always derive migration state from the live repository; never trust state files.
 - Use the `odoo-migrate-module` skill as the migration reasoning engine, not as a standalone human checklist.
 - Keep the workflow deterministic and the agent iterative.
