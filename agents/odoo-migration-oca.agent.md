@@ -61,7 +61,7 @@ Document the detected state and the evidence used before proceeding.
 
 Only run this step when state detection finds `not_started`.
 
-Run the migration script below with the correct parameters. The working branch will be `<version>-mig-<module_name>`.
+Run the migration script below with the correct parameters. Use as target_branch the agent working branch.
 
 ```bash
 #!/bin/bash
@@ -255,8 +255,8 @@ PR body policy:
 
 ## Working Rules
 
-- Prefer the dedicated `@odoo-migration-oca` agent for end-to-end migrations.
 - Always derive migration state from the live repository; never trust state files.
 - Use the `odoo-migrate-module` skill as the migration reasoning engine, not as a standalone human checklist.
 - Keep the workflow deterministic and the agent iterative.
 - Investigate ALL CI failures by reading the actual test output — specifically the errors that caused failure section in the test logs. Fix any code-level failures, not just dependency install failures.
+- Do not write on branches outside of the agent's working branch.
