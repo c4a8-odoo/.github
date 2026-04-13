@@ -24,6 +24,10 @@ Prefer the `@odoo-migration` agent for end-to-end migrations. Use this skill dir
 - `17.0 -> 18.0`: `./migration-rules-17.0-18.0.yaml` 
 - `18.0 -> 19.0`: `./migration-rules-18.0-19.0.yaml` 
 
+When the rules above are not sufficient to complete the migration, use these model specific extended rules:
+- `18.0 -> 19.0`: `./migration-rules-odoo-18-19.md`
+- `18.0 -> 19.0`: `./migration-rules-enterprise-18-19.md`
+
 ## Required Inputs
 
 Capture or infer:
