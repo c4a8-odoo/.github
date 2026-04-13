@@ -70,11 +70,10 @@ Run the migration script below with the correct parameters. Use the repository's
 MAKE SURE TO USE THE MIGRATION SCRIPT IN THIS REPOSITORY AND NEVER COPY THE FILES MANUALLY.
 
 `migration-oca.sh`: https://github.com/c4a8-odoo/.github/agents/migration-oca.sh
-Usage: ./migration-oca.sh [old_version] [new_version] [user_org] [source_path] [module] [source_branch] [target_branch]
+Usage: ./migration-oca.sh [old_version] [new_version] [user_org] [module] [source_branch] [target_branch]
 [old_version] : The version you are migrating from (e.g. 18.0)
 [new_version] : The version you are migrating to (e.g. 19.0)
 [user_org] : The GitHub organization or user owning the repository (e.g. origin)
-[source_path] : The local path to the source repository (e.g. /src)
 [module] : The name of the module to migrate (e.g. crm)
 [source_branch] : The source branch for the migration (e.g. 18.0)
 [target_branch] : The current working branch.
