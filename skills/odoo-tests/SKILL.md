@@ -59,15 +59,29 @@ my_module/
 
 ## Execution Rules
 
-For running tests look for available information from the github workflows.
+For running tests, first look for available information from GitHub workflows and module-level conventions in the target repository.
 
-For performance increase, run only tests you are currently working on with `odoo-bin` and the following command structure:
+Run the narrowest relevant test target first (usually the changed test file), then expand scope if needed.
+
+### Required Pre-Commit Gate
+
+Before any `git commit`, the agent must run tests in the current agent session and confirm they pass.
+
+- Do not commit if no test command has been executed in this session.
+- Do not commit if the latest relevant test run failed.
+- If tests cannot be executed (environment/tooling blocker), stop and report `manual_review_required` instead of committing.
+- If the user explicitly asks to commit without tests, call out the risk and require confirmation before proceeding.
+
+The commit gate is satisfied only when all of the following are present in the session output:
+
+- Exact test command(s) that were executed
+- Exit status/result for each command
+- Short pass/fail summary mapped to changed files or scenarios
+
+Use this command structure for a single test file:
 
 ```bash
-
-Single test file:
-```bash
-/usr/bin/python3 /src/odoo/odoo-bin \
+/src/odoo/odoo-bin \
   --config=/src/config/odoo.conf \
   --dev=all \
   --stop-after-init \
@@ -79,6 +93,8 @@ Single test file:
   --init=<module> \
   --update=<module>
 ```
+
+For iterative fixes, re-run the failing file first; when green, run any broader target required by CI policy in the repository.
 
 ### Failure Handling
 For each failure:

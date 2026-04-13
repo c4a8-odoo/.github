@@ -13,6 +13,7 @@ skills:
   - ../skills/odoo-documentation/SKILL.md
   - ../skills/odoo-migrate-module/SKILL.md
   - ../skills/odoo-tests/SKILL.md
+  - ../skills/odoo-validate-module/SKILL.md
 ---
 
 # Odoo Migration Agent
@@ -21,11 +22,15 @@ skills:
 
 Single-purpose agent for reliable end-to-end Odoo module migrations. The agent first inspects the live repository state to determine how far the migration has progressed (without relying on any state files), bootstraps the migration branch when needed using the OCA migration script, then applies rule-driven migration fixes, resolves CI/test blockers, runs required quality gates, and stops only on genuine blockers or explicit manual-review cases.
 
+## Requirements
+This agent is part of https://github.com/c4a8-odoo/.github and needs additional information from the repository to run. Therefore make the repository data available to the agent during execution.
+
 ## Skills
-- `odoo-development`: https://github.com/c4a8-odoo/.github/skills/development
+- `odoo-development`: https://github.com/c4a8-odoo/.github/skills/odoo-development
 - `odoo-migrate-module`: https://github.com/c4a8-odoo/.github/skills/odoo-migrate-module
 - `odoo-documentation`: https://github.com/c4a8-odoo/.github/skills/odoo-documentation
 - `odoo-tests`: https://github.com/c4a8-odoo/.github/skills/odoo-tests
+- `odoo-validate-module`: https://github.com/c4a8-odoo/.github/skills/odoo-validate-module
 
 ## Primary Entry Points
 
@@ -51,8 +56,8 @@ Map findings to one of these states and resume from the corresponding step:
 | `not_started` | No migration branch exists on remote | Step 1 (Bootstrap) |
 | `bootstrapped` | `[MIG]` commit present, PR draft or no CI run yet | Step 2 (PR Intake) |
 | `ci_failing` | PR exists, CI workflow is red | Step 4 (Test Loop) or Step 5 (CI Dependency) based on failure type |
-| `tests_green` | CI green, validation not yet done | Step 5 (Validation Loop) |
-| `validation_green` | Validation passes, docs not yet created | Step 6 (Documentation Loop) |
+| `tests_green` | CI green, validation not yet done | Step 6 (Validation Loop) |
+| `validation_green` | Validation passes, docs not yet created | Step 7 (Documentation Loop) |
 | `completed` | All loops green, final report already produced | Report current state and stop |
 
 Document the detected state and the evidence used before proceeding.
@@ -61,7 +66,8 @@ Document the detected state and the evidence used before proceeding.
 
 Only run this step when state detection finds `not_started`.
 
-Run the migration script below with the correct parameters. Use as target_branch the agent working branch.
+Run the migration script below with the correct parameters. Use the repository's target migration branch as `target_branch`, and perform all agent-authored follow-up commits on the agent's working branch.
+MAKE SURE TO USE THE MIGRATION SCRIPT IN THIS REPOSITORY AND DO NOT COPY THE FILES MANUALLY.
 
 ```bash
 #!/bin/bash
@@ -179,8 +185,7 @@ After the script completes successfully, proceed to Step 2.
 
 ### 3. Migration Rule Pass
 
-- Load `/src/.github/skills/odoo-migrate-module/migration-rules.yaml`.
-- Apply the 18.0 to 19.0 rules in priority order.
+- Load the odoo-migration skill `./skills/odoo-migrate-module/SKILL.md`.
 - Auto-apply only rules marked safe for automatic edits.
 - Record rule hits, skipped rules, and manual-review items.
 
@@ -188,6 +193,7 @@ After the script completes successfully, proceed to Step 2.
 
 - Use the `odoo-tests` skill for all test execution behavior and command details.
 - Follow `odoo-tests` exactly rather than duplicating command syntax in this agent.
+- Enforce the `odoo-tests` Required Pre-Commit Gate before any commit created by this workflow.
 - Re-run the narrowest failing test target first.
 - Keep iterating until tests pass or the issue is clearly unsafe for autonomous fixes.
 
@@ -218,7 +224,7 @@ After the script completes successfully, proceed to Step 2.
 
 - Never report success before test, validation, and documentation loops have either passed or been escalated.
 - Update the state outcome conceptually as the migration progresses: `ai_migration_done`, `tests_green`, `validation_green`, `completed`, or `manual_review_required`.
-- Do not create the initial migration PR in this workflow; it already exists.
+- If Step 1 bootstraps a brand-new migration branch, allow the bootstrap script to create the initial draft PR. Otherwise, do not create a new PR and continue working on the existing one.
 - Update the existing PR with commits that resolve migration, CI, validation, and documentation issues.
 - Produce one final report with the rule hits, files changed, commands executed, blockers resolved, and remaining manual items.
 
@@ -259,4 +265,5 @@ PR body policy:
 - Use the `odoo-migrate-module` skill as the migration reasoning engine, not as a standalone human checklist.
 - Keep the workflow deterministic and the agent iterative.
 - Investigate ALL CI failures by reading the actual test output — specifically the errors that caused failure section in the test logs. Fix any code-level failures, not just dependency install failures.
+- Before any `git commit`, run tests in the current agent session and only commit if the latest relevant run is green, following `odoo-tests` Required Pre-Commit Gate evidence requirements.
 - Do not write on branches outside of the agent's working branch.

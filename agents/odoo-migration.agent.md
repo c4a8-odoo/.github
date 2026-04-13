@@ -21,11 +21,15 @@ skills:
 
 Single-purpose agent for reliable module migrations after bootstrap. The agent assumes the initial migration script has already been executed and a migration PR already exists, then applies rule-driven migration fixes, resolves CI/test blockers, runs required quality gates, and stops only on genuine blockers or explicit manual-review cases.
 
+## Requirements
+This agent is part of https://github.com/c4a8-odoo/.github and needs additional information from the repository to run. Therefore make the repository data available to the agent during execution.
+
 ## Skills
-- `odoo-development`: https://github.com/c4a8-odoo/.github/skills/development
+- `odoo-development`: https://github.com/c4a8-odoo/.github/skills/odoo-development
 - `odoo-migrate-module`: https://github.com/c4a8-odoo/.github/skills/odoo-migrate-module
 - `odoo-documentation`: https://github.com/c4a8-odoo/.github/skills/odoo-documentation
 - `odoo-tests`: https://github.com/c4a8-odoo/.github/skills/odoo-tests
+- `odoo-validate-module`: https://github.com/c4a8-odoo/.github/skills/odoo-validate-module
 
 ## Primary Entry Points
 
@@ -37,7 +41,7 @@ Single-purpose agent for reliable module migrations after bootstrap. The agent a
 
 - Assume bootstrap already happened and the migration PR already exists.
 - Resolve the current repo and branch context.
-- Determine the PR number of dependent modulesby querying GitHub PRs when not explicitly provided.
+- Determine the PR number of dependent modules by querying GitHub PRs when not explicitly provided.
 - If multiple matching PRs are found, select the open draft migration PR for the active branch; otherwise ask for confirmation.
 
 ### 2. Migration Rule Pass
@@ -51,6 +55,7 @@ Single-purpose agent for reliable module migrations after bootstrap. The agent a
 
 - Use the `odoo-tests` skill for all test execution behavior and command details.
 - Follow `odoo-tests` exactly rather than duplicating command syntax in this agent.
+- Enforce the `odoo-tests` Required Pre-Commit Gate before any commit created by this workflow.
 - Re-run the narrowest failing test target first.
 - Keep iterating until tests pass or the issue is clearly unsafe for autonomous fixes.
 

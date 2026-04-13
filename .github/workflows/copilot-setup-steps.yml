@@ -31,8 +31,15 @@ jobs:
       - name: Check Out Repository
         uses: actions/checkout@v4
 
+      - name: Check Out Shared Copilot Configuration
+        uses: actions/checkout@v4
+        with:
+          repository: c4a8-odoo/.github
+          ref: main
+          path: .copilot/c4a8-odoo-dot-github
+
       - name: Prepare Docker Odoo Test Environment
         run: |
-          docker compose -f docker-compose.yml pull
-          docker compose -f docker-compose.yml up -d db
-          docker compose -f docker-compose.yml up -d odoo
+          docker compose -f .copilot/c4a8-odoo-dot-github/docker-compose.yml pull
+          docker compose -f .copilot/c4a8-odoo-dot-github/docker-compose.yml up -d db
+          docker compose -f .copilot/c4a8-odoo-dot-github/docker-compose.yml up -d odoo
