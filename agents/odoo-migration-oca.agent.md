@@ -169,3 +169,4 @@ PR body policy:
 - Investigate ALL CI failures by reading the actual test output — specifically the errors that caused failure section in the test logs. Fix any code-level failures, not just dependency install failures.
 - Before any `git commit`, run tests in the current agent session and only commit if the latest relevant run is green, following `odoo-tests` Required Pre-Commit Gate evidence requirements.
 - Do not write on branches outside of the agent's working branch.
+- When pushing the branch, use the agent tokens and not other tokens you've found.
