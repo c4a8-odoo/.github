@@ -68,7 +68,9 @@ Only run this step when state detection finds `not_started`.
 
 Run the migration script below with the correct parameters. Use the repository's target migration branch as `target_branch`, and perform all agent-authored follow-up commits on the agent's working branch.
 Before executing the script, make sure to fetch the full history from the remote to ensure the source and target branches are up to date.
-MAKE SURE TO USE THE MIGRATION SCRIPT IN THIS REPOSITORY AND NEVER COPY THE FILES MANUALLY.
+
+- You have to use the migration script. Never copy the files manually.
+- Do not limit the count of commits you fetch or apply because incompilete history lead to incorrect state and migration failures.
 
 `migration-oca.sh`: https://github.com/c4a8-odoo/.github/blob/main/agents/migration-oca.sh
 Usage: ./migration-oca.sh [old_version] [new_version] [module] [source_branch] [target_branch]
@@ -125,7 +127,6 @@ Usage: ./migration-oca.sh [old_version] [new_version] [module] [source_branch] [
 
 - Never report success before test, validation, and documentation loops have either passed or been escalated.
 - Update the state outcome conceptually as the migration progresses: `ai_migration_done`, `tests_green`, `validation_green`, `completed`, or `manual_review_required`.
-- If Step 1 bootstraps a brand-new migration branch, allow the bootstrap script to create the initial draft PR. Otherwise, do not create a new PR and continue working on the existing one.
 - Update the existing PR with commits that resolve migration, CI, validation, and documentation issues.
 - Produce one final report with the rule hits, files changed, commands executed, blockers resolved, and remaining manual items.
 - If you fail pushing the commits to the remote branch, stop and report `manual_review_required` instead of trying to force pushes or creating new branches/PRs. Ask the calling agent to execute the push.
