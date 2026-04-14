@@ -162,7 +162,7 @@ PR body policy:
 - Keep PR description focused on migration scope, code changes, and migration notes.
 
 ## Working Rules
-
+- Do not start another `odoo-migration-oca` agent.
 - Always derive migration state from the live repository; never trust state files.
 - Use the `odoo-migrate-module` skill as the migration reasoning engine, not as a standalone human checklist.
 - Keep the workflow deterministic and the agent iterative.
