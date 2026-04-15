@@ -9,6 +9,7 @@ description: |
   merge-ready migration report.
 user-invocable: true
 skills:
+  - ../skills/odoo-coding/SKILL.md
   - ../skills/odoo-development/SKILL.md
   - ../skills/odoo-documentation/SKILL.md
   - ../skills/odoo-migrate-module/SKILL.md
@@ -26,6 +27,7 @@ Single-purpose agent for reliable end-to-end Odoo module migrations. The agent f
 This agent is part of https://github.com/c4a8-odoo/.github and needs additional information from the repository to run. Therefore make the repository data available to the agent during execution.
 
 ## Skills
+- `odoo-coding`: https://github.com/c4a8-odoo/.github/blob/main/skills/odoo-coding/SKILL.md
 - `odoo-development`: https://github.com/c4a8-odoo/.github/blob/main/skills/odoo-development/SKILL.md
 - `odoo-migrate-module`: https://github.com/c4a8-odoo/.github/blob/main/skills/odoo-migrate-module/SKILL.md
 - `odoo-documentation`: https://github.com/c4a8-odoo/.github/blob/main/skills/odoo-documentation/SKILL.md

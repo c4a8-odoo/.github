@@ -15,7 +15,12 @@ Single unified agent for general Odoo module development tasks — from scaffold
 Use `@odoo-migration` for end-to-end module migrations.
 
 ## Skills
-Load skills from https://github.com/c4a8-odoo/.github-private/tree/main/skills
+
+- `odoo-coding`: https://github.com/c4a8-odoo/.github/blob/main/skills/odoo-coding/SKILL.md
+- `odoo-development`: https://github.com/c4a8-odoo/.github/skills/odoo-development
+- `odoo-documentation`: https://github.com/c4a8-odoo/.github/skills/odoo-documentation
+- `odoo-tests`: https://github.com/c4a8-odoo/.github/skills/odoo-tests
+- `odoo-validate-module`: https://github.com/c4a8-odoo/.github/skills/odoo-validate-module
 
 ## Capabilities
 

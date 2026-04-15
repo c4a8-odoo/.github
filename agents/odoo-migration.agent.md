@@ -9,6 +9,7 @@ description: |
   merge-ready migration report.
 user-invocable: true
 skills:
+  - ../skills/odoo-coding/SKILL.md
   - ../skills/odoo-development/SKILL.md
   - ../skills/odoo-documentation/SKILL.md
   - ../skills/odoo-migrate-module/SKILL.md
@@ -22,9 +23,12 @@ skills:
 Single-purpose agent for reliable module migrations after bootstrap. The agent assumes the initial migration script has already been executed and a migration PR already exists, then applies rule-driven migration fixes, resolves CI/test blockers, runs required quality gates, and stops only on genuine blockers or explicit manual-review cases.
 
 ## Requirements
+
 This agent is part of https://github.com/c4a8-odoo/.github and needs additional information from the repository to run. Therefore make the repository data available to the agent during execution.
 
 ## Skills
+
+- `odoo-coding`: https://github.com/c4a8-odoo/.github/blob/main/skills/odoo-coding/SKILL.md
 - `odoo-development`: https://github.com/c4a8-odoo/.github/skills/odoo-development
 - `odoo-migrate-module`: https://github.com/c4a8-odoo/.github/skills/odoo-migrate-module
 - `odoo-documentation`: https://github.com/c4a8-odoo/.github/skills/odoo-documentation
