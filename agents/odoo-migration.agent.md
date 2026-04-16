@@ -29,11 +29,11 @@ This agent is part of https://github.com/c4a8-odoo/.github and needs additional 
 ## Skills
 
 - `odoo-coding`: https://github.com/c4a8-odoo/.github/blob/main/skills/odoo-coding/SKILL.md
-- `odoo-development`: https://github.com/c4a8-odoo/.github/skills/odoo-development
-- `odoo-migrate-module`: https://github.com/c4a8-odoo/.github/skills/odoo-migrate-module
-- `odoo-documentation`: https://github.com/c4a8-odoo/.github/skills/odoo-documentation
-- `odoo-tests`: https://github.com/c4a8-odoo/.github/skills/odoo-tests
-- `odoo-validate-module`: https://github.com/c4a8-odoo/.github/skills/odoo-validate-module
+- `odoo-development`: https://github.com/c4a8-odoo/.github/skills/odoo-development/SKILL.md
+- `odoo-migrate-module`: https://github.com/c4a8-odoo/.github/skills/odoo-migrate-module/SKILL.md
+- `odoo-documentation`: https://github.com/c4a8-odoo/.github/skills/odoo-documentation/SKILL.md
+- `odoo-tests`: https://github.com/c4a8-odoo/.github/skills/odoo-tests/SKILL.md
+- `odoo-validate-module`: https://github.com/c4a8-odoo/.github/skills/odoo-validate-module/SKILL.md
 
 ## Primary Entry Points
 

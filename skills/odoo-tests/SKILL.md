@@ -96,6 +96,69 @@ Use this command structure for a single test file:
 
 For iterative fixes, re-run the failing file first; when green, run any broader target required by CI policy in the repository.
 
+### Running Tests in Docker
+
+When the repository provides a Docker-based development environment, run tests inside the Odoo container instead of on the host machine. This keeps Python dependencies, PostgreSQL access, and mounted addons aligned with the repository setup.
+
+Use a repository-agnostic process that works across OCA repositories:
+
+1. Inspect `docker-compose.yml` or `compose.yaml` and identify:
+   - The Odoo service name
+   - The PostgreSQL service name
+   - The command used to start Odoo
+   - The addons mount path inside the container
+   - Any config file path passed to Odoo
+2. Start the database service first.
+3. Run the test command in a one-off Odoo container.
+4. Reuse the same database name while iterating on failures, or drop and recreate it if the repository workflow requires a clean database.
+
+Typical commands:
+
+```bash
+docker compose up -d <db_service>
+
+docker compose run --rm <odoo_service> \
+  odoo \
+  --stop-after-init \
+  --test-enable \
+  --workers=0 \
+  -d <test_db> \
+  -i <module>
+```
+
+For update-driven test runs on an existing database:
+
+```bash
+docker compose run --rm <odoo_service> \
+  odoo \
+  --stop-after-init \
+  --test-enable \
+  --workers=0 \
+  -d <test_db> \
+  -u <module>
+```
+
+For a single test file, first determine the module mount point from the compose file, then pass the in-container absolute path:
+
+```bash
+docker compose run --rm <odoo_service> \
+  odoo \
+  --stop-after-init \
+  --test-enable \
+  --workers=0 \
+  -d <test_db> \
+  -i <module> \
+  --test-file=<container_addons_path>/<module>/tests/test_<name>.py
+```
+
+Adapt these placeholders to the target repository:
+- `<odoo_service>`: often `odoo`
+- `<db_service>`: often `db` or `postgres`
+- `<test_db>`: a disposable database such as `test_<module>`
+- `<container_addons_path>`: the addons path mounted inside the container
+
+If the repository uses a wrapper script or Make target instead of invoking `odoo` directly, prefer that project-provided entry point, but keep the same principles: run inside the container, use `--stop-after-init`, enable tests, and target the narrowest relevant module or file first.
+
 ### Failure Handling
 For each failure:
 1. Read the traceback fully.
