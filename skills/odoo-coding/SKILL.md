@@ -41,6 +41,19 @@ Python:
 - Use `@api.model_create_multi` on `create()` overrides.
 - Accept `vals_list` and keep per-record logic in a loop over created records and their values.
 - Use `Command` helpers for x2many operations (`create`, `update`, `delete`, `unlink`, `link`, `clear`, `set`).
+  Replace the integer-tuple ORM commands with Command class equivalents.
+  Add 'from odoo import Command' to the import block if not already present.
+  Mapping:
+    (0, 0, vals)     → Command.create(vals)
+    (1, id, vals)    → Command.update(id, vals)
+    (2, id)          → Command.delete(id)
+    (3, id)          → Command.unlink(id)
+    (4, id)          → Command.link(id)
+    (5,)             → Command.clear()
+    (6, 0, ids)      → Command.set(ids)
+  Example:
+    Before: 'order_line': [(0, 0, {'product_id': p.id, 'qty': 1})]
+    After:  'order_line': [Command.create({'product_id': p.id, 'qty': 1})]
 - Use recordset-scoped cache and flush APIs (`invalidate_recordset`, `flush_recordset`) and model-level invalidation when needed.
 
 JavaScript:
