@@ -173,3 +173,4 @@ PR body policy:
 - Before any `git commit`, run tests in the current agent session and only commit if the latest relevant run is green, following `odoo-tests` Required Pre-Commit Gate evidence requirements.
 - Do not write on branches outside of the agent's working branch.
 - When pushing the branch, use the agent tokens and not other tokens you've found.
+- Use git-receive-pack to push commits to the remote branch.
