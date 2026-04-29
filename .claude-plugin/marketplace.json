@@ -1,0 +1,24 @@
+{
+    "name": "c4a8-odoo",
+    "owner": {
+        "name": "Christopher Rogos"
+    },
+    "metadata": {
+        "description": "C4A8 Odoo skills",
+        "version": "1.0.0"
+    },
+    "plugins": [
+        {
+            "name": "odoo-skills",
+            "description": "Collection of Odoo migration and module management skills",
+            "source": "./",
+            "strict": false,
+            "skills": [
+                "./skills/odoo-migrate-module",
+                "./skills/odoo-coding-review",
+                "./skills/odoo-module-scaffold",
+                "./skills/odoo-tests"
+            ]
+        }
+    ]
+}

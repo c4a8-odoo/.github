@@ -74,7 +74,7 @@ Before executing the script, make sure to fetch the full history from the remote
 - You have to use the migration script. Never copy the files manually.
 - Do not limit the count of commits you fetch or apply because incompilete history lead to incorrect state and migration failures.
 
-`migration-oca.sh`: https://github.com/c4a8-odoo/.github/blob/main/agents/migration-oca.sh
+`migration-oca.sh`: https://github.com/c4a8-odoo/.github/blob/main/skills/odoo-migrate-module/scripts/migration-oca.sh
 Usage: ./migration-oca.sh [old_version] [new_version] [module] [source_branch] [target_branch]
 [old_version] : The version you are migrating from (e.g. 18.0)
 [new_version] : The version you are migrating to (e.g. 19.0)

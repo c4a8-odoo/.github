@@ -1,6 +1,6 @@
 ---
 name: odoo-coding
-description: Version-aware Odoo coding syntax guide (16.0 through 19.0) with cumulative rules and no future-version assumptions.
+description: Odoo coding guide for.
 ---
 
 # Odoo Coding Skill

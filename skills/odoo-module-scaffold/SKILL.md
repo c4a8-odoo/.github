@@ -1,9 +1,9 @@
 ---
 name: odoo-module-scaffold
-description: Guide for creating a new Odoo module following OCA standards. Use this when asked to create, scaffold, or initialize a new Odoo module or addon.
+description: Guide for creating a new Odoo module. Use this when asked to create, scaffold, or initialize a new Odoo module or addon.
 ---
 
-# Creating a New Odoo Module (OCA Standards)
+# Creating a New Odoo Module
 
 This organization uses the OCA (Odoo Community Association) `oca-addons-repo-template` via Copier to scaffold new module repositories.
 

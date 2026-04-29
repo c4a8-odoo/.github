@@ -1,0 +1,98 @@
+schema_version: 1
+
+supported_paths:
+  label: Odoo 16.0
+  target_manifest_version: 16.0.1.0.0
+  rules:
+    - id: tests.savepoint_to_transactioncase
+      scope: tests
+      severity: required
+      auto_apply: true
+      summary: Replace removed SavepointCase with TransactionCase in all test files.
+      detection:
+        file_globs:
+          - 'tests/**/*.py'
+          - '**/*test*.py'
+        hints:
+          - SavepointCase
+      action:
+        kind: replace_regex
+        pattern: 'SavepointCase'
+        replacement: 'TransactionCase'
+
+    - id: tests.savepoint_import
+      scope: tests
+      severity: required
+      auto_apply: true
+      summary: Update imports that pulled SavepointCase from odoo.tests.common.
+      detection:
+        file_globs:
+          - 'tests/**/*.py'
+          - '**/*test*.py'
+        hints:
+          - from odoo.tests.common import SavepointCase
+          - from odoo.tests import SavepointCase
+      action:
+        kind: replace_regex
+        pattern: '(?:from odoo\.tests\.common import|from odoo\.tests import)\s+SavepointCase'
+        replacement: 'from odoo.tests.common import TransactionCase'
+
+    - id: payment.acquirer_to_provider
+      scope: python
+      severity: required
+      auto_apply: false
+      summary: >
+        Rename payment.acquirer to payment.provider and update all related
+        field and model references.
+      detection:
+        file_globs:
+          - '**/*.py'
+          - '**/*.xml'
+          - '**/*.csv'
+        hints:
+          - payment.acquirer
+          - acquirer_id
+          - acquirer_ref
+      action:
+        kind: review_only
+        recommendation: >
+          In Odoo 16.0, the payment acquirer concept was renamed to payment
+          provider. Apply the following renames:
+            - Model "payment.acquirer" → "payment.provider"
+            - Field "acquirer_id" on payment.token → "provider_id"
+            - Field "acquirer_ref" on payment.token → "provider_ref"
+            - Field "acquirer_id" on payment.transaction → "provider_id"
+            - Class PaymentAcquirer → PaymentProvider
+          Also update demo/test data XML files, ir.model.access CSV rows, and
+          any domain expressions filtering on acquirer_id. 
+      manual_review_reason: >
+        Several third-party payment modules may still expose acquirer_id-based
+        fields via their own model extensions. Each occurrence must be checked to
+        distinguish Odoo core renames from module-specific field names.
+
+    - id: views.priority.widget
+      scope: xml
+      severity: recommended
+      auto_apply: false
+      summary: >
+        Review priority field usages in views; the priority widget rendering
+        changed in 16.0.
+      detection:
+        file_globs:
+          - '**/*.xml'
+        hints:
+          - widget="priority"
+      action:
+        kind: review_only
+        recommendation: >
+          In Odoo 16.0, the priority widget renders differently and the field
+          value range may differ. Verify that:
+          1. The priority field still displays correctly in list and kanban views.
+          2. The domain filters using priority values still work as expected.
+          3. The optional="show" attribute is appropriate for list views.
+          Confirmed pattern in stock_landed_costs_priority
+          (OCA/stock-logistics-workflow) where priority widget is used with
+          optional="show" nolabel="1" in tree views.
+      manual_review_reason: >
+        Visual behaviour changes in the priority widget are context-dependent
+        and must be verified by running the module in a 16.0 instance.
