@@ -1,24 +1,37 @@
 #!/usr/bin/env bash
+
 set -euo pipefail
+
+# Check for docker or podman and alias if needed
+if ! command -v docker >/dev/null 2>&1; then
+  if command -v podman >/dev/null 2>&1; then
+    alias docker='podman'
+    echo "docker not found, using podman as a replacement."
+  fi
+fi
 
 usage() {
   cat <<'EOF'
 Run the provided test.yml workflow test job locally on the current working tree.
 
 Usage:
-  bash skills/odoo-tests/scripts/run-test-workflow.sh [--with-ocb] [--include <module>] [--db <database>]
+  bash skills/odoo-tests/scripts/run-test-workflow.sh [--with-ocb] [--include <module>] [--db <database>] [--odoo-version <version>] [--python-version <version>]
 
 Options:
-  --with-ocb         Run both matrix images (Odoo first, then OCB).
-  --include <module> Restrict test selection via INCLUDE.
-  --db <database>    Override PGDATABASE (default: odoo).
-  -h, --help         Show this help.
+  --with-ocb             Run both matrix images (Odoo first, then OCB).
+  --include <module>     Restrict test selection via INCLUDE.
+  --db <database>        Override PGDATABASE (default: odoo).
+  --odoo-version <ver>   Set Odoo version (default: 19.0).
+  --python-version <ver> Set Python version (default: 3.10).
+  -h, --help             Show this help.
 EOF
 }
 
 WITH_OCB=0
 INCLUDE_VALUE=""
 PGDATABASE_VALUE="odoo"
+ODOO_VERSION="19.0"
+PYTHON_VERSION="3.10"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -38,6 +51,22 @@ while [[ $# -gt 0 ]]; do
       PGDATABASE_VALUE="${2:-}"
       if [[ -z "$PGDATABASE_VALUE" ]]; then
         echo "Error: --db requires a value" >&2
+        exit 1
+      fi
+      shift 2
+      ;;
+    --odoo-version)
+      ODOO_VERSION="${2:-}"
+      if [[ -z "$ODOO_VERSION" ]]; then
+        echo "Error: --odoo-version requires a value" >&2
+        exit 1
+      fi
+      shift 2
+      ;;
+    --python-version)
+      PYTHON_VERSION="${2:-}"
+      if [[ -z "$PYTHON_VERSION" ]]; then
+        echo "Error: --python-version requires a value" >&2
         exit 1
       fi
       shift 2
@@ -94,9 +123,9 @@ if ! docker exec "$PG_CONTAINER_NAME" pg_isready -U odoo >/dev/null 2>&1; then
   exit 1
 fi
 
-IMAGES=("ghcr.io/oca/oca-ci/py3.10-odoo18.0:latest")
+IMAGES=("ghcr.io/oca/oca-ci/py${PYTHON_VERSION}-odoo${ODOO_VERSION}:latest")
 if [[ "$WITH_OCB" -eq 1 ]]; then
-  IMAGES+=("ghcr.io/oca/oca-ci/py3.10-ocb18.0:latest")
+  IMAGES+=("ghcr.io/oca/oca-ci/py${PYTHON_VERSION}-ocb${ODOO_VERSION}:latest")
 fi
 
 for image in "${IMAGES[@]}"; do

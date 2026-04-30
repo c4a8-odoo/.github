@@ -96,6 +96,18 @@ bash skills/odoo-tests/scripts/run-test-workflow.sh --include <module>
 bash skills/odoo-tests/scripts/run-test-workflow.sh --db <database>
 ```
 
+- Override the Python version:
+
+```bash
+bash skills/odoo-tests/scripts/run-test-workflow.sh --python-version <python_version>
+```
+
+- Override the Odoo version:
+
+```bash
+bash skills/odoo-tests/scripts/run-test-workflow.sh --odoo-version <odoo_version>>
+```
+
 ### Iteration Rules
 
 - Start with the default command (Odoo image only) while iterating.
