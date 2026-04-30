@@ -108,7 +108,7 @@ docker run -d --rm \
   -e POSTGRES_USER=odoo \
   -e POSTGRES_PASSWORD=odoo \
   -e POSTGRES_DB=odoo \
-  postgres:12.0 >/dev/null
+  postgres:13.0 >/dev/null
 
 echo "Waiting for postgres to become ready"
 for _ in $(seq 1 30); do
@@ -133,14 +133,13 @@ for image in "${IMAGES[@]}"; do
   echo "=== Running local workflow in image: $image ==="
   docker run --rm \
     --network "$NETWORK_NAME" \
-    -v "$REPO_ROOT:/workspace" \
-    -w /workspace \
+    -v "$REPO_ROOT:/addon" \
     -e OCA_ENABLE_CHECKLOG_ODOO=1 \
     -e PGHOST="$PG_CONTAINER_NAME" \
     -e PGUSER=odoo \
     -e PGPASSWORD=odoo \
     -e PGDATABASE="$PGDATABASE_VALUE" \
-    -e ADDONS_DIR=. \
+    -e ADDONS_DIR=/addon \
     -e INCLUDE="$INCLUDE_VALUE" \
     -e EXCLUDE="" \
     "$image" \
@@ -148,8 +147,8 @@ for image in "${IMAGES[@]}"; do
       set -euo pipefail
       dropdb --if-exists "$PGDATABASE" || true
       oca_install_addons
-      manifestoo -d . check-licenses
-      manifestoo -d . check-dev-status --default-dev-status=Beta
+      manifestoo -d /addon check-licenses
+      manifestoo -d /addon check-dev-status --default-dev-status=Beta
       oca_init_test_database
       oca_run_tests
     '
