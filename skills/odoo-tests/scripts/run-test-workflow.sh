@@ -5,8 +5,10 @@ set -euo pipefail
 # Check for docker or podman and alias if needed
 if ! command -v docker >/dev/null 2>&1; then
   if command -v podman >/dev/null 2>&1; then
-    alias docker='podman'
-    echo "docker not found, using podman as a replacement."
+    mkdir -p /tmp/docker-shim 
+    printf '#!/bin/bash\nexec podman "$@"\n' > /tmp/docker-shim/docker 
+    chmod +x /tmp/docker-shim/docker 
+    echo "Shim created"
   fi
 fi
 
