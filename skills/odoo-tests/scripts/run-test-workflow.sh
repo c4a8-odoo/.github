@@ -2,14 +2,15 @@
 
 set -euo pipefail
 
-# Check for docker or podman and alias if needed
-if ! command -v docker >/dev/null 2>&1; then
-  if command -v podman >/dev/null 2>&1; then
-    mkdir -p /tmp/docker-shim 
-    printf '#!/bin/bash\nexec podman "$@"\n' > /tmp/docker-shim/docker 
-    chmod +x /tmp/docker-shim/docker 
-    echo "Shim created"
-  fi
+# Determine which container runtime to use
+if command -v podman >/dev/null 2>&1; then
+  DOCKER_CMD="podman"
+  echo "docker not found, using podman instead."
+elif command -v docker >/dev/null 2>&1; then
+  DOCKER_CMD="docker"
+else
+  echo "Error: neither docker nor podman is available." >&2
+  exit 1
 fi
 
 usage() {
@@ -85,26 +86,25 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if ! command -v docker >/dev/null 2>&1; then
-  echo "Error: docker is required" >&2
-  exit 1
-fi
+
 
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 NETWORK_NAME="oca-ci-test-net-$$"
 PG_CONTAINER_NAME="oca-ci-postgres-$$"
 
 cleanup() {
-  docker rm -f "$PG_CONTAINER_NAME" >/dev/null 2>&1 || true
-  docker network rm "$NETWORK_NAME" >/dev/null 2>&1 || true
+  $DOCKER_CMD rm -f "$PG_CONTAINER_NAME" >/dev/null 2>&1 || true
+  $DOCKER_CMD network rm "$NETWORK_NAME" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
+
 echo "Creating docker network: $NETWORK_NAME"
-docker network create "$NETWORK_NAME" >/dev/null
+$DOCKER_CMD network create "$NETWORK_NAME"
+
 
 echo "Starting postgres service container"
-docker run -d --rm \
+$DOCKER_CMD run -d --rm \
   --name "$PG_CONTAINER_NAME" \
   --network "$NETWORK_NAME" \
   -e POSTGRES_USER=odoo \
@@ -113,14 +113,16 @@ docker run -d --rm \
   postgres:13.0 >/dev/null
 
 echo "Waiting for postgres to become ready"
+
 for _ in $(seq 1 30); do
-  if docker exec "$PG_CONTAINER_NAME" pg_isready -U odoo >/dev/null 2>&1; then
+  if $DOCKER_CMD exec "$PG_CONTAINER_NAME" pg_isready -U odoo >/dev/null 2>&1; then
     break
   fi
   sleep 1
 done
 
-if ! docker exec "$PG_CONTAINER_NAME" pg_isready -U odoo >/dev/null 2>&1; then
+
+if ! $DOCKER_CMD exec "$PG_CONTAINER_NAME" pg_isready -U odoo >/dev/null 2>&1; then
   echo "Error: postgres did not become ready in time" >&2
   exit 1
 fi
@@ -130,10 +132,11 @@ if [[ "$WITH_OCB" -eq 1 ]]; then
   IMAGES+=("ghcr.io/oca/oca-ci/py${PYTHON_VERSION}-ocb${ODOO_VERSION}:latest")
 fi
 
+
 for image in "${IMAGES[@]}"; do
   echo ""
   echo "=== Running local workflow in image: $image ==="
-  docker run --rm \
+  $DOCKER_CMD run --rm \
     --network "$NETWORK_NAME" \
     -v "$REPO_ROOT:/addon" \
     -e OCA_ENABLE_CHECKLOG_ODOO=1 \
