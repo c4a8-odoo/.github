@@ -120,7 +120,7 @@ bash skills/odoo-tests/scripts/run-test-workflow.sh --odoo-version <odoo_version
 
 - Do not run `oca_export_and_push_pot` from this skill script.
 - Keep "Detect unreleased dependencies" as an optional, separate local precheck when needed.
-- If Docker or Podman is unavailable in the environment, stop and report the blocker instead of switching to ad-hoc raw `odoo-bin` execution.
+- If the test execution script returns a docker or podman error, stop and report the blocker instead of switching to ad-hoc raw `odoo-bin` execution.
 
 ### Failure Handling
 For each failure:

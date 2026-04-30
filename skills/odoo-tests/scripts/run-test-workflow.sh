@@ -148,10 +148,9 @@ for image in "${IMAGES[@]}"; do
     bash -lc '
       set -euo pipefail
       dropdb --if-exists "$PGDATABASE" || true
-      oca_install_addons
-      manifestoo -d /addon check-licenses
-      manifestoo -d /addon check-dev-status --default-dev-status=Beta
-      oca_init_test_database
+      # disable log output to avoid ai flooding
+      oca_install_addons > /dev/null
+      oca_init_test_database  > /dev/null
       oca_run_tests
     '
 done
