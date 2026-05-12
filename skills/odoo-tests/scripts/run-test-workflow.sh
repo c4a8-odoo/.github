@@ -18,7 +18,7 @@ usage() {
 Run the provided test.yml workflow test job locally on the current working tree.
 
 Usage:
-  bash skills/odoo-tests/scripts/run-test-workflow.sh [--with-ocb] [--include <module>] [--db <database>] [--odoo-version <version>] [--python-version <version>]
+  bash skills/odoo-tests/scripts/run-test-workflow.sh [--with-ocb] [--include <module>] [--db <database>] [--odoo-version <version>] [--python-version <version>] [--enterprise <path>]
 
 Options:
   --with-ocb             Run both matrix images (Odoo first, then OCB).
@@ -26,6 +26,7 @@ Options:
   --db <database>        Override PGDATABASE (default: odoo).
   --odoo-version <ver>   Set Odoo version (default: 19.0).
   --python-version <ver> Set Python version (default: 3.10).
+  --enterprise <path>    Path to enterprise repository (optional).
   -h, --help             Show this help.
 EOF
 }
@@ -35,6 +36,7 @@ INCLUDE_VALUE=""
 PGDATABASE_VALUE="odoo"
 ODOO_VERSION="19.0"
 PYTHON_VERSION="3.10"
+ENTERPRISE_PATH=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -74,6 +76,14 @@ while [[ $# -gt 0 ]]; do
       fi
       shift 2
       ;;
+    --enterprise)
+      ENTERPRISE_PATH="${2:-}"
+      if [[ -z "$ENTERPRISE_PATH" ]]; then
+        echo "Error: --enterprise requires a value" >&2
+        exit 1
+      fi
+      shift 2
+      ;;
     -h|--help)
       usage
       exit 0
@@ -99,7 +109,7 @@ cleanup() {
 trap cleanup EXIT
 
 
-echo "Creating docker network: $NETWORK_NAME"
+echo "Creating $DOCKER_CMD network: $NETWORK_NAME"
 $DOCKER_CMD network create "$NETWORK_NAME"
 
 
@@ -136,15 +146,28 @@ fi
 for image in "${IMAGES[@]}"; do
   echo ""
   echo "=== Running local workflow in image: $image ==="
+  
+  # Build volume mounts
+  PATH_ADDONS="/addon"
+  if [[ -n "$ENTERPRISE_PATH" ]]; then
+    PATH_ADDONS="/enterprise,$PATH_ADDONS"
+  fi
+
+  VOLUME_MOUNTS="-v $REPO_ROOT:/addon"
+  if [[ -n "$ENTERPRISE_PATH" ]]; then
+    VOLUME_MOUNTS="$VOLUME_MOUNTS -v $ENTERPRISE_PATH:/enterprise"
+  fi
+
   $DOCKER_CMD run --rm \
     --network "$NETWORK_NAME" \
-    -v "$REPO_ROOT:/addon" \
+    $VOLUME_MOUNTS \
     -e OCA_ENABLE_CHECKLOG_ODOO=1 \
     -e PGHOST="$PG_CONTAINER_NAME" \
     -e PGUSER=odoo \
     -e PGPASSWORD=odoo \
     -e PGDATABASE="$PGDATABASE_VALUE" \
-    -e ADDONS_DIR=/addon \
+    -e ADDONS_PATH=$PATH_ADDONS \
+    -e TESTS_GITHUB_TOKEN="${TESTS_GITHUB_TOKEN:-}" \
     -e INCLUDE="$INCLUDE_VALUE" \
     -e EXCLUDE="" \
     "$image" \
