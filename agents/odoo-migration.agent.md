@@ -8,6 +8,7 @@ description: |
   running post-migration validation/documentation loops, and producing a
   merge-ready migration report.
 user-invocable: true
+tools: ["*"]
 skills:
   - ../skills/odoo-coding/SKILL.md
   - ../skills/odoo-development/SKILL.md
@@ -20,7 +21,7 @@ skills:
 
 ## Purpose
 
-Single-purpose agent for reliable module migrations after bootstrap. The agent assumes the initial migration script has already been executed and a migration PR already exists, then applies rule-driven migration fixes, resolves CI/test blockers, runs required quality gates, and stops only on genuine blockers or explicit manual-review cases. The migration steps are described in the `odoo-migrate-module` skill.
+Single-purpose agent for reliable module migrations after bootstrap. The agent assumes the initial migration script has already been executed and a migration PR already exists, then applies rule-driven migration fixes, resolves CI/test blockers, runs required quality gates, and stops only on genuine blockers or explicit manual-review cases. The migration steps are described in the `odoo-migrate-module` skill. Do not start other instances of this agent.
 
 ## Requirements
 
