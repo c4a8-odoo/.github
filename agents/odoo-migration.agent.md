@@ -20,7 +20,7 @@ skills:
 
 ## Purpose
 
-Single-purpose agent for reliable module migrations after bootstrap. The agent assumes the initial migration script has already been executed and a migration PR already exists, then applies rule-driven migration fixes, resolves CI/test blockers, runs required quality gates, and stops only on genuine blockers or explicit manual-review cases.
+Single-purpose agent for reliable module migrations after bootstrap. The agent assumes the initial migration script has already been executed and a migration PR already exists, then applies rule-driven migration fixes, resolves CI/test blockers, runs required quality gates, and stops only on genuine blockers or explicit manual-review cases. The migration steps are described in the `odoo-migrate-module` skill.
 
 ## Requirements
 
@@ -48,53 +48,6 @@ This agent is part of https://github.com/c4a8-odoo/.github and needs additional 
 - Determine the PR number of dependent modules by querying GitHub PRs when not explicitly provided.
 - If multiple matching PRs are found, select the open draft migration PR for the active branch; otherwise ask for confirmation.
 
-### 2. Migration Rule Pass
-
-- Load `/src/.github/skills/odoo-migrate-module/migration-rules.yaml`.
-- Apply the 18.0 to 19.0 rules in priority order.
-- Auto-apply only rules marked safe for automatic edits.
-- Record rule hits, skipped rules, and manual-review items.
-
-### 3. Test Loop
-
-- Use the `odoo-tests` skill for all test execution behavior and command details.
-- Follow `odoo-tests` exactly rather than duplicating command syntax in this agent.
-- Enforce the `odoo-tests` Required Pre-Commit Gate before any commit created by this workflow.
-- Re-run the narrowest failing test target first.
-- Keep iterating until tests pass or the issue is clearly unsafe for autonomous fixes.
-
-### 4. CI Dependency Fix Loop (Missing Modules)
-
-- When the migration PR workflow fails due to missing dependent modules, update `test-requirements.txt`.
-- Add one line per missing module using this exact syntax:
-  `odoo-addon-<module_name> @ git+https://github.com/c4a8-odoo/<repository>.git@refs/pull/<PR>/head#subdirectory=<module_name>`
-- `<PR>` must be the PR number obtained by querying GitHub PRs.
-- `<repository>` must be the repository name obtained by querying GitHub repositories of the c4a8-odoo organization. The repository name most likeliy start with `module-c4a8-`, but all repositories starting with `module-` are valid.
-- Commit this change with the exact message:
-  `[DO NOT MERGE] community: add test requirements`
-- Push and re-run/observe CI status before making additional dependency edits.
-
-### 5. Validation Loop
-
-- Invoke the `odoo-validate-module` skill after tests are green or explicitly scoped.
-- Fix blocking validation findings with minimal targeted edits.
-- Repeat validation until there are no blockers left or the remaining issues require manual review.
-
-### 6. Documentation Loop
-
-- After tests and validation are green, invoke the `odoo-documentation` skill to create or update module documentation.
-- Ensure docs reflect migration-relevant behavior changes in `readme/` files, including UI workflow changes where applicable.
-- If the migration includes UI changes, include updated screenshots and highlighted change callouts according to the `odoo-documentation` screenshot rules.
-
-### 7. Completion Rules
-
-- Never report success before test, validation, and documentation loops have either passed or been escalated.
-- Update the state outcome conceptually as the migration progresses: `ai_migration_done`, `tests_green`, `validation_green`, `completed`, or `manual_review_required`.
-- Do not create the initial migration PR in this workflow; it already exists.
-- Update the existing PR with commits that resolve migration, CI, validation, and documentation issues.
-- Produce one final report with the rule hits, files changed, commands executed, blockers resolved, and remaining manual items.
-- If you fail pushing the commits to the remote branch, stop and report `manual_review_required` instead of trying to force pushes or creating new branches/PRs. Ask the calling agent to execute the push.
-
 ## Manual-Review Gates
 
 Escalate instead of forcing changes when any of the following hold:
@@ -117,8 +70,6 @@ Every run should return:
 - Test commands run and their results
 - Validation outcome and remaining blockers
 - Documentation files and screenshot assets created or updated
-- Run pre-commit at the very end
-- Final status: `completed` or `manual_review_required`
 
 PR body policy:
 - Exclude test-result summaries from PR description text.
@@ -126,7 +77,7 @@ PR body policy:
 
 ## Working Rules
 
-- Prefer the dedicated `@odoo-migration` agent for end-to-end migrations.
 - Use the `odoo-migrate-module` skill as the migration reasoning engine, not as a standalone human checklist.
 - Keep the post-bootstrap workflow deterministic and the agent iterative.
-- Investigate ALL CI failures by reading the actual test output — specifically the errors that caused failure section in the test logs. Fix any code-level failures, not just dependency install failures.
+- Run pre-commit at the very end
+- Use `git-receive-pack` to push commits to the remote branch.
