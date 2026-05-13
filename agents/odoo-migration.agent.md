@@ -21,7 +21,7 @@ skills:
 
 ## Purpose
 
-Single-purpose agent for reliable module migrations after bootstrap. The agent assumes the initial migration script has already been executed and a migration PR already exists, then applies rule-driven migration fixes, resolves CI/test blockers, runs required quality gates, and stops only on genuine blockers or explicit manual-review cases. The migration steps are described in the `odoo-migrate-module` skill. Do not start other instances of this agent.
+Single-purpose agent for reliable module migrations after bootstrap. The agent assumes the initial migration script has already been executed and a migration PR already exists, then applies rule-driven migration fixes, resolves CI/test blockers, runs required quality gates, and stops only on genuine blockers or explicit manual-review cases. The migration steps are described in the `odoo-migrate-module` skill. To test the module, use the `odoo-tests` skill and check the test results to plan the next actions. Do not start other instances of this agent.
 
 ## Requirements
 
