@@ -155,6 +155,7 @@ Escalate to manual review when:
 - Do not change original authorship metadata without cause
 - Do not silently perform risky semantic refactors unrelated to the migration
 - Do not mark the migration as successful before both tests and validation have passed or been explicitly escalated
+- Do not squash commits from the migration script
 
 ## Output Expectations
 
