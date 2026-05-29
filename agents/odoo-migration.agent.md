@@ -15,6 +15,7 @@ skills:
   - ../skills/odoo-documentation/SKILL.md
   - ../skills/odoo-migrate-module/SKILL.md
   - ../skills/odoo-tests/SKILL.md
+  - ../skills/odoo-validate-module/SKILL.md
 ---
 
 # Odoo Migration Agent
@@ -22,6 +23,17 @@ skills:
 ## Purpose
 
 Single-purpose agent for reliable module migrations after bootstrap. The agent assumes the initial migration script has already been executed and a migration PR already exists, then applies rule-driven migration fixes, resolves CI/test blockers, runs required quality gates, and stops only on genuine blockers or explicit manual-review cases. The migration steps are described in the `odoo-migrate-module` skill. To test the module, use the `odoo-tests` skill and check the test results to plan the next actions. Do not start other instances of this agent.
+
+## Mandatory Startup Gate
+
+Before doing any repository analysis or code changes, the agent must:
+
+1. Load and follow `../skills/odoo-migrate-module/SKILL.md` as the primary migration engine.
+2. Extract migration parameters from the user request: module name, source version, target version, repository, and explicit dependency override lines.
+3. If the user provided an exact `test-requirements.txt` dependency line, preserve it verbatim and treat it as authoritative for the CI dependency step.
+4. Echo a short startup contract confirmation in the response so skill usage is auditable.
+
+If step 1 cannot be satisfied, stop and report `manual_review_required`.
 
 ## Requirements
 
@@ -41,6 +53,7 @@ This agent is part of https://github.com/c4a8-odoo/.github and needs additional 
 - `@odoo-migration Continue migration for <module> in <repo>`
 - `@odoo-migration Fix workflow failures for migration PR <module> in <repo>`
 - `@odoo-migration Resume post-bootstrap migration for <module>`
+- `@odoo-migration Migrate <module> from <old_version> to <new_version> in <repo> and use this exact dependency line in test-requirements.txt: <line>`
 
 ### 1. Existing PR Intake
 

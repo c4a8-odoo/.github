@@ -6,7 +6,7 @@ description: |
   compacting bot-generated administrative commits,
   and consolidating Weblate translation commits safely.
 user-invocable: true
-tools: ["*"]
+tools: ["bash"]
 ---
 
 # Odoo PR Commit Cleanup Agent

@@ -165,7 +165,7 @@ The agent automatically:
 | Create a new module | `@odoo Create new_module_name` or `/create-module` |
 | Write tests | `@odoo Write tests for X` or `/improve-tests` |
 | Write docs | `@odoo Generate documentation` or `/write-docs` |
-| Migrate to 19.0 | `@odoo-migration Migrate module to 19.0` |
+| Migrate to 19.0 | `@odoo-migration Migrate <module> from 18.0 to 19.0 in <repo> and use this exact dependency line in test-requirements.txt: <line>` |
 | Check quality | `@odoo Validate module` or `/validate-module` |
 | Save a pattern | `@odoo Remember "pattern description"` or `/remember-pattern` |
 

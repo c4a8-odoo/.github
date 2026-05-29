@@ -7,6 +7,14 @@ description: Migrate Odoo modules between versions by a rule driven workflow.
 
 Purpose: Rule-driven migration engine to update Odoo modules from one version to the next (e.g. 15.0 -> 16.0, 16.0 -> 17.0, etc.), with structured state management and clear escalation gates.
 
+## Caller Contract (Mandatory)
+
+When invoked by an agent workflow:
+- Load this skill before running migration analysis, edits, tests, or validation.
+- Use this skill as the primary migration decision engine for rule application.
+- If the user provides an exact dependency override line for `test-requirements.txt`, copy it verbatim and do not normalize or rewrite it.
+- Emit a short, explicit startup acknowledgement that this skill is active.
+
 ## When to Use
 
 Use this skill when the task involves:
@@ -24,7 +32,7 @@ Prefer the `@odoo-migration` agent for end-to-end migrations. Use this skill dir
 - `17.0 -> 18.0`: `./resources/migration-rules-17.0-18.0.yaml` 
 - `18.0 -> 19.0`: `./resources/migration-rules-18.0-19.0.yaml` 
 
-When the rules above are not sufficient to complete the migration, use these model specific extended rules:
+When the rules above are not sufficient to complete the migration, use these module-specific extended rules:
 - `18.0 -> 19.0`: In `https://github.com/OCA/OpenUpgrade/tree/19.0/openupgrade_scripts/scripts` you may find module specific migration scripts for OCA and Odoo modules.
 - `18.0 -> 19.0`: `./resources/migration-rules-odoo-18-19.md`
 - `18.0 -> 19.0`: `./resources/migration-rules-enterprise-18-19.md`
@@ -32,10 +40,11 @@ When the rules above are not sufficient to complete the migration, use these mod
 ## Required Inputs
 
 Capture or infer:
-- Module module name
+- Module name
 - Repository path and active branch
 - Source version and target version
 - Current stage of the migration run and any prior blockers
+- Any user-provided exact dependency override line for `test-requirements.txt`
 
 ## Primary Entry Points
 
@@ -49,11 +58,8 @@ Capture or infer:
 If no direct entry point is provided, determine where the migration stands by inspecting the **live repository state**. Do not rely on any state files.
 
 Detect state by examining:
-- Whether a `[MIG] <module_name>: Migration to <version>` commit is present on the working branch, contiune with stage 
-
-- Whether a the branch `<version>-mig-<module_name>` or a PR `[<version>][MIG] <module_name>:` exists on the remote.
-- When the currenct branch has
-
+- Whether a `[MIG] <module_name>: Migration to <version>` commit is present on the working branch.
+- Whether the branch `<version>-mig-<module_name>` or a PR `[<version>][MIG] <module_name>:` exists on the remote.
 - The diff of all commits **after** the `[MIG]` commit: which rule-driven, fix, or dependency commits have already been applied.
 - The CI/test workflow status of the migration PR (if one exists): green, failing, or not yet run.
 
@@ -78,7 +84,7 @@ Run the migration script below with the correct parameters from a dedicated migr
 Before executing the script, make sure to fetch the full history from the remote to ensure the source and target branches are up to date.
 
 - You have to use the migration script. Never copy the files manually.
-- Do not limit the count of commits you fetch or apply because incompilete history lead to incorrect state and migration failures.
+- Do not limit the count of commits you fetch or apply because incomplete history leads to incorrect state and migration failures.
 - While checked out on `<new_version>-mig-<module_name>`, pass `source_branch=<old_version>` and `target_branch=<new_version>` to the script so patch generation is based on the version branches, not on the temporary working branch.
 - Do not squash, rebase, or re-create script-applied commits manually.
 - After script execution, verify commit preservation:
@@ -103,7 +109,7 @@ Usage: ./migration-oca.sh [old_version] [new_version] [module] [source_branch] [
 
 ### 3. Migration Rule Pass
 
-- Load the odoo-migration skill `./skills/odoo-migrate-module/SKILL.md`.
+- This skill is already the active migration engine for this step; do not substitute generic migration logic.
 - Auto-apply only rules marked safe for automatic edits.
 - Record rule hits, skipped rules, and manual-review items.
 
@@ -122,7 +128,7 @@ Usage: ./migration-oca.sh [old_version] [new_version] [module] [source_branch] [
 - Add one line per missing module using this exact syntax:
   `odoo-addon-<module_name> @ git+https://github.com/c4a8-odoo/<repository>.git@refs/pull/<PR>/head#subdirectory=<module_name>`
 - `<PR>` must be the PR number obtained by querying GitHub PRs.
-- `<repository>` must be the repository name obtained by querying GitHub repositories of the c4a8-odoo organization. The repository name most likeliy start with `module-c4a8-`, but all repositories starting with `module-` are valid.
+- `<repository>` must be the repository name obtained by querying GitHub repositories of the c4a8-odoo organization. The repository name most likely starts with `module-c4a8-`, but all repositories starting with `module-` are valid.
 - Commit this change with the exact message:
   `[DO NOT MERGE] community: add test requirements`
 - Push and re-run/observe CI status before making additional dependency edits.
