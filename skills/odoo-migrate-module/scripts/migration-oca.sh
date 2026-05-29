@@ -9,7 +9,7 @@ version_old="${1:-18.0}"
 version="${2:-19.0}"
 module_name="${3:-}"
 source_branch="${4:-$version_old}"
-target_branch="${5:-$version}"
+target_branch="${5:-$version-mig-$module_name}"
 
 LOG_FILE="${LOG_FILE:-/tmp/migration.log}"
 
@@ -20,6 +20,12 @@ log() {
 main() {
   if [ -z "$module_name" ]; then
     echo "ERROR: module parameter is required"; exit 1
+  fi
+
+  current_branch="$(git rev-parse --abbrev-ref HEAD)"
+  if [ "$current_branch" = "$version" ]; then
+    log "[BRANCH] Current branch is $version; creating $target_branch from $version"
+    git checkout -b "$target_branch" "$version"
   fi
 
   log "=== Migration Start ==="
