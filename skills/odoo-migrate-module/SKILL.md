@@ -74,11 +74,18 @@ Document the detected state and the evidence used before proceeding.
 
 Only run this step when state detection finds `not_started`.
 
-Run the migration script below with the correct parameters. Use the repository's target migration branch as `target_branch`, and perform all agent-authored follow-up commits on the agent's working branch.
+Run the migration script below with the correct parameters from a dedicated migration working branch named `<new_version>-mig-<module_name>`, created from `<new_version>`.
 Before executing the script, make sure to fetch the full history from the remote to ensure the source and target branches are up to date.
 
 - You have to use the migration script. Never copy the files manually.
 - Do not limit the count of commits you fetch or apply because incompilete history lead to incorrect state and migration failures.
+- While checked out on `<new_version>-mig-<module_name>`, pass `source_branch=<old_version>` and `target_branch=<new_version>` to the script so patch generation is based on the version branches, not on the temporary working branch.
+- Do not squash, rebase, or re-create script-applied commits manually.
+- After script execution, verify commit preservation:
+  1) compute expected patch count for the module from `<target_branch>..<source_branch>` before apply,
+  2) compute commits added by bootstrap on the migration branch,
+  3) ensure the bootstrap-added commits contain the full script patch series (optionally plus the pre-commit autofix commit).
+- If commit counts do not align or patch subjects are collapsed into a single commit, stop and escalate as `manual_review_required`.
 
 `migration-oca.sh`: https://github.com/c4a8-odoo/.github/blob/main/skills/odoo-migrate-module/scripts/migration-oca.sh
 Usage: ./migration-oca.sh [old_version] [new_version] [module] [source_branch] [target_branch]
@@ -111,6 +118,7 @@ Usage: ./migration-oca.sh [old_version] [new_version] [module] [source_branch] [
 ### 5. CI Dependency Fix Loop (Missing Modules)
 
 - When the migration PR workflow fails due to missing dependent modules, update `test-requirements.txt`.
+- If the user explicitly provides an exact dependency line, use it verbatim and do not rewrite it.
 - Add one line per missing module using this exact syntax:
   `odoo-addon-<module_name> @ git+https://github.com/c4a8-odoo/<repository>.git@refs/pull/<PR>/head#subdirectory=<module_name>`
 - `<PR>` must be the PR number obtained by querying GitHub PRs.
@@ -162,6 +170,7 @@ Escalate to manual review when:
 After using this skill, provide:
 - State source used for the run, including the state file path when present
 - Source and target versions
+- Bootstrap commit-preservation evidence (expected patch count, applied commit count, and whether any squash/collapse was detected)
 - Rules applied, skipped, or escalated
 - Files changed
 - Tests run and results

@@ -80,5 +80,7 @@ PR body policy:
 
 - Use the `odoo-migrate-module` skill as the migration reasoning engine, not as a standalone human checklist.
 - Keep the post-bootstrap workflow deterministic and the agent iterative.
+- Treat migration-script commits as immutable history: do not squash, reset, flatten, or interactive-rebase them.
+- If commit history is already collapsed when this agent starts, stop and report `manual_review_required` instead of rewriting history.
 - Run pre-commit at the very end
 - Use `git-receive-pack` to push commits to the remote branch.
