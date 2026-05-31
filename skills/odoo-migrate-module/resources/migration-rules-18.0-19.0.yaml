@@ -41,6 +41,33 @@ supported_paths:
           kind: replace_version
           target: 19.0.1.0.0
 
+      - id: manifest.target_branch.audit
+        scope: manifest
+        severity: required
+        auto_apply: false
+        summary: Re-evaluate manifest metadata against the 19.0 target branch instead of preserving the 18.0 file verbatim.
+        detection:
+          files:
+            - __manifest__.py
+          hints:
+            - depends
+            - data
+            - license
+            - external_dependencies
+        action:
+          kind: review_only
+          recommendation: >
+            Compare __manifest__.py with the target branch version and update
+            depends, data, license, and external_dependencies to reflect the
+            19.0 branch baseline and any target-side additions or removals.
+            Do not preserve the source-branch manifest verbatim when the
+            target branch already diverged.
+        manual_review_reason: >
+          Manifest drift must be reviewed against the target branch because
+          dependency, data-file, license, and external dependency changes are
+          module-specific and cannot be derived safely from the 18.0 source
+          file alone.
+
       - id: cleanup.legacy.migrations
         scope: filesystem
         severity: required
@@ -72,7 +99,7 @@ supported_paths:
       - id: python.env.cursor
         scope: python
         severity: required
-        auto_apply: false
+        auto_apply: true
         summary: Replace legacy self._cr access with self.env.cr.
         detection:
           file_globs:
@@ -83,12 +110,11 @@ supported_paths:
           kind: replace_literal
           from: self._cr
           to: self.env.cr
-        manual_review_reason: Verify the target object is still a model environment and not a lower-level cursor wrapper.
 
       - id: python.env.context
         scope: python
         severity: required
-        auto_apply: false
+        auto_apply: true
         summary: Replace legacy self._context access with self.env.context.
         detection:
           file_globs:
@@ -99,22 +125,37 @@ supported_paths:
           kind: replace_literal
           from: self._context
           to: self.env.context
-        manual_review_reason: Confirm the call site expects a mapping and not a copied context object.
 
       - id: python.env.uid
         scope: python
         severity: required
-        auto_apply: false
-        summary: Replace legacy self._uid usage with the appropriate env-based equivalent.
+        auto_apply: true
+        summary: Replace legacy self._uid usage with self.env.uid.
         detection:
           file_globs:
             - '**/*.py'
           hints:
             - self._uid
         action:
-          kind: review_only
-          recommendation: Use self.env.uid for the numeric user id or self.env.user for the record, depending on call-site semantics.
-        manual_review_reason: The correct replacement varies by usage and should not be mass-applied blindly.
+          kind: replace_literal
+          from: self._uid
+          to: self.env.uid
+
+      - id: python.api.decorators.multi_one
+        scope: python
+        severity: required
+        auto_apply: true
+        summary: Remove deprecated @api.multi and @api.one decorators.
+        detection:
+          file_globs:
+            - '**/*.py'
+          hints:
+            - '@api.multi'
+            - '@api.one'
+        action:
+          kind: replace_regex
+          pattern: '(?m)^[ \t]*@api\.(multi|one)(?:[ \t]+#.*)?(?:\r?\n|$)'
+          replacement: ''
 
       - id: python.groups_id.group_ids
         scope: python

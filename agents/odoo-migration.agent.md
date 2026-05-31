@@ -72,6 +72,18 @@ Escalate instead of forcing changes when any of the following hold:
 - Validation failures point to missing upstream dependencies or architectural issues
 - The migration would require unrelated refactors to become green
 
+Do not escalate by default for trivially safe 18.0 -> 19.0 cleanup such as:
+
+- `self._cr` -> `self.env.cr`
+- `self._context` -> `self.env.context`
+- `self._uid` -> `self.env.uid`
+- Removing deprecated `@api.multi` and `@api.one` decorators
+
+Before any manual-review outcome, the agent must also:
+
+- Re-evaluate each migrated `__manifest__.py` against the target branch version, especially `depends`, `data`, `license`, and `external_dependencies`
+- Resolve or explicitly account for uncategorized `OTHER` findings instead of leaving them unaddressed
+
 ## Output Contract
 
 Every run should return:
@@ -80,6 +92,8 @@ Every run should return:
 - Existing PR number used for CI dependency references
 - Source and target versions
 - Rule hits applied, skipped, or escalated
+- Manifest drift review outcome for `depends`, `data`, `license`, and `external_dependencies`
+- Disposition of uncategorized `OTHER` findings
 - Files changed
 - Test commands run and their results
 - Validation outcome and remaining blockers
