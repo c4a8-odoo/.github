@@ -154,7 +154,7 @@ supported_paths:
             - '@api.one'
         action:
           kind: replace_regex
-          pattern: '(?m)^[ \t]*@api\.(multi|one)\n'
+          pattern: '(?m)^[ \t]*@api\.(multi|one)\s*\n?'
           replacement: ''
 
       - id: python.groups_id.group_ids
