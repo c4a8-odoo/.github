@@ -111,6 +111,9 @@ Usage: ./migration-oca.sh [old_version] [new_version] [module] [source_branch] [
 
 - This skill is already the active migration engine for this step; do not substitute generic migration logic.
 - Auto-apply only rules marked safe for automatic edits.
+- Treat `self._cr -> self.env.cr`, `self._context -> self.env.context`, `self._uid -> self.env.uid`, and `@api.multi`/`@api.one` removal as safe automatic edits for 18.0 -> 19.0 migrations.
+- Re-evaluate every migrated `__manifest__.py` against the target branch version instead of preserving the source manifest verbatim, with explicit attention to `depends`, `data`, `license`, and `external_dependencies`.
+- Treat uncategorized findings such as `OTHER` as required follow-up work: resolve them or explain the blocker explicitly before completion.
 - Record rule hits, skipped rules, and manual-review items.
 
 ### 4. Test Loop
@@ -158,7 +161,7 @@ Usage: ./migration-oca.sh [old_version] [new_version] [module] [source_branch] [
 Escalate to manual review when:
 
 - Patch application left semantic conflicts
-- A proposed replacement depends on call-site intent, especially `self._uid`, `toggle_active`, or `Domain` rewrites
+- A proposed replacement depends on call-site intent, especially `toggle_active` or `Domain` rewrites
 - Tests keep failing after narrow, migration-focused fixes
 - Validation blockers point to missing dependencies or broader architecture issues
 - The next change would be an unrelated refactor rather than a migration fix
