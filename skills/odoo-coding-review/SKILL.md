@@ -1,6 +1,7 @@
 ---
 name: odoo-coding-review
 description: Odoo coding review guide for syntax, rules and best practices.
+context: fork
 ---
 
 # Odoo Coding Review Skill

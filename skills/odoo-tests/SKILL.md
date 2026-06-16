@@ -1,6 +1,7 @@
 ---
 name: odoo-tests
 description: Guide for writing and running Odoo tests.
+context: fork
 ---
 
 # Odoo Tests Skill

@@ -5,6 +5,7 @@ description: |
   Use for: creating/extending modules, writing tests, generating documentation,
   validating modules, and capturing patterns.
 user-invocable: true
+tools: ["*"]
 ---
 
 # Odoo Module Development Agent
