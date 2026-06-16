@@ -19,6 +19,22 @@
                 "./skills/odoo-module-scaffold",
                 "./skills/odoo-tests"
             ]
+        },
+        {
+            "name": "test-plugin",
+            "description": "Test plugin for testing loading of plugins.",
+            "version": "1.0.0",
+            "homepage": "https://github.com/c4a8-odoo/llm-plugin",
+            "keywords": [
+                "test",
+                "plugin"
+            ],
+            "repository": "https://github.com/c4a8-odoo/llm-plugin",
+            "source": {
+                "source": "github",
+                "repo": "c4a8-odoo/llm-plugin",
+                "path": "test-plugin"
+            }
         }
     ]
 }
