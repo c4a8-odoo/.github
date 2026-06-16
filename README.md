@@ -1,2 +1,2 @@
-# .github-private
+# .github
 Odoo AI Skill Repository
